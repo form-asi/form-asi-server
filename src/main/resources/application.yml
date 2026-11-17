@@ -3,3 +3,7 @@ spring:
     default: local
   application:
     name: form-asi-server
+
+springdoc:
+  swagger-ui:
+    path: /api-docs
