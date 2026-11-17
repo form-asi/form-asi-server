@@ -1,0 +1,32 @@
+name: form-asi-server
+
+services:
+  postgres:
+    image: postgres:17
+    container_name: formasi-postgres-17
+    restart: always
+    environment:
+      POSTGRES_USER: formasi
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: formasi
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - ./docker/postgres_data:/var/lib/postgresql/data
+    networks:
+      - home_network
+
+  valkey:
+    image: valkey/valkey:latest
+    container_name: formasi-valkey
+    restart: always
+    ports:
+      - "127.0.0.1:16379:6379"
+    command: ["valkey-server", "--requirepass", "password", "--appendonly", "yes"]
+    volumes:
+      - ./docker/valkey_data:/data
+    networks:
+      - home_network
+
+networks:
+  home_network:

@@ -43,3 +43,7 @@ out/
 
 ### Local docs ###
 /docs/
+
+### Local Docker data ###
+/docker/postgres_data/
+/docker/valkey_data/

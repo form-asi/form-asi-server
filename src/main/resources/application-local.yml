@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:15432/formasi
+    username: formasi
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: update
+  data:
+    redis:
+      host: localhost
+      port: 16379
+      password: password
