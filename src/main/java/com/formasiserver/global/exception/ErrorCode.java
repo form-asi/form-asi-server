@@ -10,6 +10,8 @@ public enum ErrorCode {
 
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "올바르지 않은 요청입니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "입력값을 확인해주세요."),
+    BIRTH_DATE_UNAVAILABLE(HttpStatus.BAD_REQUEST, "BIRTH_DATE_UNAVAILABLE", "생년월일을 확인할 수 없습니다."),
+    UNDER_MINIMUM_AGE(HttpStatus.FORBIDDEN, "UNDER_MINIMUM_AGE", "만 14세 이상만 이용할 수 있습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "접근 권한이 없습니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."),
