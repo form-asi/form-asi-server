@@ -10,8 +10,13 @@ public enum ErrorCode {
 
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "올바르지 않은 요청입니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "입력값을 확인해주세요."),
+    KAKAO_LOGIN_CANCELLED(HttpStatus.BAD_REQUEST, "KAKAO_LOGIN_CANCELLED", "카카오 로그인이 취소됐습니다."),
+    OAUTH_STATE_INVALID(HttpStatus.BAD_REQUEST, "OAUTH_STATE_INVALID", "카카오 로그인을 처음부터 다시 시작해주세요."),
+    BIRTH_DATE_AGREEMENT_REQUIRED(HttpStatus.BAD_REQUEST, "BIRTH_DATE_AGREEMENT_REQUIRED", "카카오 생년월일 제공에 동의해주세요."),
     BIRTH_DATE_UNAVAILABLE(HttpStatus.BAD_REQUEST, "BIRTH_DATE_UNAVAILABLE", "생년월일을 확인할 수 없습니다."),
+    BIRTH_DATE_VERIFICATION_REQUIRED(HttpStatus.BAD_REQUEST, "BIRTH_DATE_VERIFICATION_REQUIRED", "음력 생일의 윤달 여부를 확인해주세요."),
     UNDER_MINIMUM_AGE(HttpStatus.FORBIDDEN, "UNDER_MINIMUM_AGE", "만 14세 이상만 이용할 수 있습니다."),
+    KAKAO_AUTH_UNAVAILABLE(HttpStatus.BAD_GATEWAY, "KAKAO_AUTH_UNAVAILABLE", "카카오 로그인에 연결할 수 없습니다."),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, "FORBIDDEN", "접근 권한이 없습니다."),
     NOT_FOUND(HttpStatus.NOT_FOUND, "NOT_FOUND", "요청한 리소스를 찾을 수 없습니다."),

@@ -11,3 +11,9 @@ spring:
       host: localhost
       port: 16379
       password: password
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: false
