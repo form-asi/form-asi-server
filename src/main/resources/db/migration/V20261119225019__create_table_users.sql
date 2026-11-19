@@ -2,7 +2,7 @@ CREATE TABLE users (
     user_id UUID PRIMARY KEY,
     kakao_id VARCHAR(100) NOT NULL,
     birth_date DATE NOT NULL,
-    nickname VARCHAR(30),
+    nickname VARCHAR(10),
     role VARCHAR(20) NOT NULL,
     status VARCHAR(20) NOT NULL,
     notification_enabled BOOLEAN NOT NULL DEFAULT TRUE,

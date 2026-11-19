@@ -33,7 +33,7 @@ public class User extends BaseTimeEntity {
     @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
 
-    @Column(name = "nickname", length = 30)
+    @Column(name = "nickname", length = 10)
     private String nickname;
 
     @Enumerated(EnumType.STRING)
