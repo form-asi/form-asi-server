@@ -30,6 +30,7 @@ server:
         same-site: lax
 
 auth:
+  allowed-origins: ${AUTH_ALLOWED_ORIGINS:}
   jwt:
     secret-key: ${JWT_SECRET_KEY}
     issuer: ${JWT_ISSUER:form-asi-server}

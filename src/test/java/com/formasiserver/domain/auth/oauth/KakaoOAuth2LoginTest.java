@@ -6,6 +6,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.formasiserver.domain.auth.jwt.JwtProvider;
+import com.formasiserver.domain.auth.repository.AuthTokenRedisRepository;
+import com.formasiserver.domain.auth.security.AuthProperties;
+import com.formasiserver.domain.user.repository.UserRepository;
 import com.formasiserver.global.config.SecurityConfig;
 import com.formasiserver.global.exception.ErrorCode;
 import com.sun.net.httpserver.HttpExchange;
@@ -15,6 +19,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterAll;
@@ -40,6 +45,7 @@ import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.NullSecurityContextRepository;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -49,8 +55,10 @@ import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
+import tools.jackson.databind.json.JsonMapper;
 
 @SpringJUnitWebConfig(KakaoOAuth2LoginTest.OAuthTestConfig.class)
+@MockitoBean(types = {JwtProvider.class, AuthTokenRedisRepository.class, UserRepository.class})
 class KakaoOAuth2LoginTest {
 
     private static final String AUTHORIZATION_PATH = "/oauth2/authorization/kakao";
@@ -239,6 +247,16 @@ class KakaoOAuth2LoginTest {
     @EnableWebSecurity
     @Import({SecurityConfig.class, KakaoOAuth2UserService.class})
     static class OAuthTestConfig {
+
+        @Bean
+        JsonMapper jsonMapper() {
+            return JsonMapper.builder().build();
+        }
+
+        @Bean
+        AuthProperties authProperties() {
+            return new AuthProperties(List.of());
+        }
 
         @Bean
         ClientRegistrationRepository clientRegistrations() {
