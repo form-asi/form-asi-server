@@ -4,19 +4,16 @@ import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
+@RequiredArgsConstructor
 public final class KakaoOAuth2User implements OAuth2User {
 
     private final String kakaoId;
     private final KakaoBirthDate birthDate;
-
-    public KakaoOAuth2User(String kakaoId, KakaoBirthDate birthDate) {
-        this.kakaoId = kakaoId;
-        this.birthDate = birthDate;
-    }
 
     @Override
     public String getName() {

@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.UUID;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -153,14 +154,11 @@ public class JwtProvider {
     public record VerifiedToken(UUID userId, UUID tokenId, Instant issuedAt, Instant expiresAt) {
     }
 
+    @RequiredArgsConstructor
     private enum TokenType {
         ACCESS("access"),
         REFRESH("refresh");
 
         private final String claimValue;
-
-        TokenType(String claimValue) {
-            this.claimValue = claimValue;
-        }
     }
 }
