@@ -120,7 +120,7 @@ class ApiSecurityTest {
             throws Exception {
         member(userStatus, role);
         UUID otherUser = UUID.randomUUID();
-        MvcResult result = mvc.perform(get("/api/v1/users/profile-options").header(HttpHeaders.AUTHORIZATION, access())
+        MvcResult result = mvc.perform(post("/api/v1/users/me/onboarding").header(HttpHeaders.AUTHORIZATION, access())
                         .header("X-User-Id", otherUser).param("userId", otherUser.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(USER_ID.toString()))
@@ -138,13 +138,43 @@ class ApiSecurityTest {
         member(UserStatus.PENDING, UserRole.USER);
         String access = access();
         mvc.perform(get("/api/v1/users/profile-options").header(HttpHeaders.AUTHORIZATION, access))
-                .andExpect(status().isOk());
-        mvc.perform(get("/api/v1/users/nickname-availability").header(HttpHeaders.AUTHORIZATION, access))
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.occupations[11].code").value("OTHER"))
+                .andExpect(jsonPath("$.data.householdSizes[4].label").value("5명 이상"))
+                .andExpect(jsonPath("$.data.childrenCounts[0].code").value("NONE"))
+                .andExpect(jsonPath("$.data.petExperiences[1].code").value("PAST"))
+                .andExpect(jsonPath("$.data.petTypes[8].label").value("기타"));
+        mvc.perform(get("/api/v1/users/nickname-availability").header(HttpHeaders.AUTHORIZATION, access)
+                        .param("nickname", "하나10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.available").value(true));
         mvc.perform(post("/api/v1/users/me/onboarding").header(HttpHeaders.AUTHORIZATION, access))
                 .andExpect(status().isOk());
         mvc.perform(post(ME).header(HttpHeaders.AUTHORIZATION, access))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.error.code").value("PROFILE_REQUIRED"));
+    }
+
+    @Test
+    void reportsAnUnavailableNicknameWithoutReservingIt() throws Exception {
+        member(UserStatus.ACTIVE, UserRole.USER);
+        when(userRepository.existsByNicknameIgnoringCase("Member2026")).thenReturn(true);
+
+        mvc.perform(get("/api/v1/users/nickname-availability").header(HttpHeaders.AUTHORIZATION, access())
+                        .param("nickname", "Member2026"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.available").value(false));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"가", "abcdefghijk", "'한 글'", "'abc-123'", "' '"})
+    void rejectsInvalidNicknamesBeforeSearching(String nickname) throws Exception {
+        member(UserStatus.PENDING, UserRole.USER);
+        mvc.perform(get("/api/v1/users/nickname-availability").header(HttpHeaders.AUTHORIZATION, access())
+                        .param("nickname", nickname))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_NICKNAME"));
+        verify(userRepository).findById(USER_ID);
+        verifyNoMoreInteractions(userRepository);
     }
 
     @ParameterizedTest
@@ -196,7 +226,7 @@ class ApiSecurityTest {
     @RestController
     static class ProbeController {
 
-        @GetMapping({"/api/v1/users/profile-options", "/api/v1/users/nickname-availability", "/api/v1/admin/probe"})
+        @GetMapping("/api/v1/admin/probe")
         public AuthenticatedUser principal(@AuthenticationPrincipal(errorOnInvalidType = true) AuthenticatedUser user) {
             return user;
         }
