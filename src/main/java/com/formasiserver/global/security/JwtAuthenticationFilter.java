@@ -5,7 +5,6 @@ import com.formasiserver.domain.auth.jwt.JwtProvider.VerifiedToken;
 import com.formasiserver.domain.auth.repository.AuthTokenRedisRepository;
 import com.formasiserver.domain.auth.security.AuthenticatedUser;
 import com.formasiserver.domain.auth.security.BearerTokenResolver;
-import com.formasiserver.domain.auth.security.SecurityErrorHandler;
 import com.formasiserver.domain.user.entity.User;
 import com.formasiserver.domain.user.repository.UserRepository;
 import com.formasiserver.global.exception.ApiException;

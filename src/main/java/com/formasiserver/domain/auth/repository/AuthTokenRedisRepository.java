@@ -20,7 +20,6 @@ import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.types.Expiration;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 
 @Component
 @RequiredArgsConstructor
@@ -30,7 +29,9 @@ public class AuthTokenRedisRepository {
 
     public void saveRefresh(UUID userId, IssuedToken refresh) {
         Instant expiresAt = refresh.expiresAt();
-        Assert.state(expiresAt.isAfter(Instant.now()), "Refresh Token could not be stored before expiry");
+        if (!expiresAt.isAfter(Instant.now())) {
+            throw new IllegalStateException("Refresh Token could not be stored before expiry");
+        }
         redis.opsForValue().set(refreshKey(userId), refreshValue(hash(refresh.value()), expiresAt),
                 expirationAt(expiresAt));
     }
@@ -43,7 +44,9 @@ public class AuthTokenRedisRepository {
     public boolean rotateRefresh(UUID userId, String currentRefresh, IssuedToken replacement) {
         String currentHash = hash(currentRefresh);
         String replacementHash = hash(replacement.value());
-        Assert.isTrue(!currentHash.equals(replacementHash), "Replacement Refresh Token must be different");
+        if (currentHash.equals(replacementHash)) {
+            throw new IllegalArgumentException("Replacement Refresh Token must be different");
+        }
         String expected = refreshValue(currentHash, replacement.expiresAt());
         byte[] next = bytes(refreshValue(replacementHash, replacement.expiresAt()));
         Object result = changeRefresh(userId, expected::equals, (connection, key) ->

@@ -1,12 +1,14 @@
 package com.formasiserver.global.config;
 
 import com.formasiserver.domain.auth.jwt.JwtProvider;
+import com.formasiserver.domain.auth.oauth.KakaoLoginHandler;
+import com.formasiserver.domain.auth.oauth.KakaoOAuth2UserService;
 import com.formasiserver.domain.auth.repository.AuthTokenRedisRepository;
 import com.formasiserver.domain.auth.security.AuthProperties;
-import com.formasiserver.domain.auth.security.SecurityErrorHandler;
 import com.formasiserver.domain.user.repository.UserRepository;
 import com.formasiserver.global.exception.ErrorCode;
 import com.formasiserver.global.security.JwtAuthenticationFilter;
+import com.formasiserver.global.security.SecurityErrorHandler;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -41,11 +43,11 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.context.NullSecurityContextRepository;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.security.web.util.matcher.OrRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.cors.CorsConfiguration;
@@ -60,11 +62,37 @@ public class SecurityConfig {
     private static final String API_PATH = "/api/v1/**";
     private static final String REFRESH_PATH = "/api/v1/auth/refresh";
     private static final String LOGOUT_PATH = "/api/v1/auth/logout";
+    private static final String KAKAO_LOGIN_BASE = "/api/v1/auth/login";
+    private static final String KAKAO_CALLBACK_PATH = "/login/oauth2/code/kakao";
+    private static final RequestMatcher KAKAO_REQUESTS = new OrRequestMatcher(
+            PathPatternRequestMatcher.pathPattern(HttpMethod.GET, KAKAO_LOGIN_BASE + "/kakao"),
+            PathPatternRequestMatcher.pathPattern(HttpMethod.GET, KAKAO_CALLBACK_PATH));
     private static final int KAKAO_SESSION_TIMEOUT_SECONDS = 300;
 
     @Bean
     public SecurityErrorHandler securityErrorHandler(ObjectMapper objectMapper) {
         return new SecurityErrorHandler(objectMapper);
+    }
+
+    @Bean
+    public SecurityFilterChain kakaoSecurityFilterChain(
+            HttpSecurity http, ClientRegistrationRepository registrations, KakaoOAuth2UserService kakaoUserService,
+            OAuth2AccessTokenResponseClient<OAuth2AuthorizationCodeGrantRequest> kakaoTokenClient,
+            KakaoLoginHandler kakaoLoginHandler) throws Exception {
+        return http
+                .securityMatcher(KAKAO_REQUESTS)
+                .requestCache(AbstractHttpConfigurer::disable)
+                .securityContext(context -> context.securityContextRepository(new NullSecurityContextRepository()))
+                .authorizeHttpRequests(authorize -> authorize.anyRequest().permitAll())
+                .oauth2Login(login -> login
+                        .authorizationEndpoint(endpoint ->
+                                endpoint.authorizationRequestResolver(kakaoAuthorizationRequestResolver(registrations)))
+                        .redirectionEndpoint(endpoint -> endpoint.baseUri(KAKAO_CALLBACK_PATH))
+                        .tokenEndpoint(endpoint -> endpoint.accessTokenResponseClient(kakaoTokenClient))
+                        .userInfoEndpoint(endpoint -> endpoint.userService(kakaoUserService))
+                        .successHandler(kakaoLoginHandler)
+                        .failureHandler(kakaoLoginHandler))
+                .build();
     }
 
     @Bean
@@ -80,6 +108,7 @@ public class SecurityConfig {
                 jwtProvider, tokenRepository, userRepository, errorHandler, excludedFromJwt);
 
         return http
+                .securityMatcher(new NegatedRequestMatcher(KAKAO_REQUESTS))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .requestCache(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -143,7 +172,9 @@ public class SecurityConfig {
     @Bean
     public JdkClientHttpRequestFactory kakaoRequestFactory(ClientRegistrationRepository registrations) {
         ClientRegistration registration = registrations.findByRegistrationId("kakao");
-        Assert.notNull(registration, "Kakao OAuth registration is required");
+        if (registration == null) {
+            throw new IllegalArgumentException("Kakao OAuth registration is required");
+        }
         requireSetting(registration.getClientId(), "KAKAO_CLIENT_ID");
         requireSetting(registration.getClientSecret(), "KAKAO_CLIENT_SECRET");
         requireSetting(registration.getRedirectUri(), "KAKAO_REDIRECT_URI");
@@ -177,7 +208,8 @@ public class SecurityConfig {
 
     public OAuth2AuthorizationRequestResolver kakaoAuthorizationRequestResolver(
             ClientRegistrationRepository registrations) {
-        var delegate = new DefaultOAuth2AuthorizationRequestResolver(registrations, "/oauth2/authorization");
+        DefaultOAuth2AuthorizationRequestResolver delegate =
+                new DefaultOAuth2AuthorizationRequestResolver(registrations, KAKAO_LOGIN_BASE);
         return new OAuth2AuthorizationRequestResolver() {
             @Override
             public OAuth2AuthorizationRequest resolve(HttpServletRequest request) {
@@ -200,7 +232,9 @@ public class SecurityConfig {
     }
 
     private static void requireSetting(String value, String name) {
-        Assert.state(StringUtils.hasText(value) && !value.startsWith("${"), () -> name + " must be configured");
+        if (!StringUtils.hasText(value) || value.startsWith("${")) {
+            throw new IllegalStateException(name + " must be configured");
+        }
     }
 
 }

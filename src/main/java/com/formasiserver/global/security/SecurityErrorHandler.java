@@ -1,5 +1,6 @@
-package com.formasiserver.domain.auth.security;
+package com.formasiserver.global.security;
 
+import com.formasiserver.domain.auth.security.AuthenticatedUser;
 import com.formasiserver.domain.user.entity.UserStatus;
 import com.formasiserver.global.exception.ErrorCode;
 import com.formasiserver.global.response.ApiResponse;

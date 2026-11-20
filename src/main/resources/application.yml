@@ -31,6 +31,7 @@ server:
 
 auth:
   allowed-origins: ${AUTH_ALLOWED_ORIGINS:}
+  login-redirect-url: ${AUTH_LOGIN_REDIRECT_URL:}
   jwt:
     secret-key: ${JWT_SECRET_KEY}
     issuer: ${JWT_ISSUER:form-asi-server}

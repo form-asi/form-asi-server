@@ -2,6 +2,7 @@ package com.formasiserver;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -26,14 +27,14 @@ class FormAsiServerApplicationTests {
     }
 
     @Test
-    void oauthRoutesAreNotConnected() throws Exception {
+    void deniesTheOldOAuthEntryAndPostRequestsToTheGetEndpoints() throws Exception {
         mvc.perform(get("/oauth2/authorization/kakao").accept(MediaType.TEXT_HTML))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
-        mvc.perform(get("/api/v1/auth/login/kakao").accept(MediaType.TEXT_HTML))
+        mvc.perform(post("/api/v1/auth/login/kakao").accept(MediaType.TEXT_HTML))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
-        mvc.perform(get("/login/oauth2/code/kakao").accept(MediaType.TEXT_HTML))
+        mvc.perform(post("/login/oauth2/code/kakao").accept(MediaType.TEXT_HTML))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code").value("UNAUTHORIZED"));
     }

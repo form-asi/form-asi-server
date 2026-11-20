@@ -17,7 +17,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 @Component
@@ -57,8 +56,9 @@ public class JwtProvider {
         if (!expiresAt.isAfter(issuedAt)) {
             throw unauthorized();
         }
-        Assert.isTrue(!expiresAt.isAfter(issuedAt.plus(JwtProperties.MAX_REFRESH_TTL)),
-                "Login expiry exceeds the maximum Refresh Token lifetime");
+        if (expiresAt.isAfter(issuedAt.plus(JwtProperties.MAX_REFRESH_TTL))) {
+            throw new IllegalArgumentException("Login expiry exceeds the maximum Refresh Token lifetime");
+        }
         return issue(userId, TokenType.REFRESH, issuedAt, expiresAt);
     }
 
@@ -71,7 +71,9 @@ public class JwtProvider {
     }
 
     private IssuedToken issue(UUID userId, TokenType type, Instant issuedAt, Instant expiresAt) {
-        Assert.isTrue(issuedAt.isBefore(expiresAt), "Token expiry must be after issuance");
+        if (!expiresAt.isAfter(issuedAt)) {
+            throw new IllegalArgumentException("Token expiry must be after issuance");
+        }
         String token = Jwts.builder()
                 .header().type("JWT").and()
                 .subject(Objects.requireNonNull(userId, "User ID is required").toString())
@@ -138,7 +140,9 @@ public class JwtProvider {
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("JWT_SECRET_KEY must be Base64-encoded");
         }
-        Assert.isTrue(bytes.length >= 32, "JWT_SECRET_KEY must decode to at least 32 bytes");
+        if (bytes.length < 32) {
+            throw new IllegalArgumentException("JWT_SECRET_KEY must decode to at least 32 bytes");
+        }
         return new SecretKeySpec(bytes, "HmacSHA256");
     }
 
