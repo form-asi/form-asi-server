@@ -120,7 +120,7 @@ class ApiSecurityTest {
             throws Exception {
         member(userStatus, role);
         UUID otherUser = UUID.randomUUID();
-        MvcResult result = mvc.perform(get(ME).header(HttpHeaders.AUTHORIZATION, access())
+        MvcResult result = mvc.perform(get("/api/v1/users/profile-options").header(HttpHeaders.AUTHORIZATION, access())
                         .header("X-User-Id", otherUser).param("userId", otherUser.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(USER_ID.toString()))
@@ -172,16 +172,10 @@ class ApiSecurityTest {
     }
 
     @Test
-    void authEndpointsAreDeniedUntilConnected() throws Exception {
+    void csrfTokenRouteIsNotExposed() throws Exception {
         member(UserStatus.ACTIVE, UserRole.USER);
         String access = access();
         mvc.perform(get("/api/v1/auth/csrf").header(HttpHeaders.ORIGIN, ORIGIN)
-                        .header(HttpHeaders.AUTHORIZATION, access))
-                .andExpect(status().isForbidden());
-        mvc.perform(post("/api/v1/auth/refresh").header(HttpHeaders.ORIGIN, ORIGIN)
-                        .header(HttpHeaders.AUTHORIZATION, access))
-                .andExpect(status().isForbidden());
-        mvc.perform(post("/api/v1/auth/logout").header(HttpHeaders.ORIGIN, ORIGIN)
                         .header(HttpHeaders.AUTHORIZATION, access))
                 .andExpect(status().isForbidden());
     }
@@ -202,7 +196,7 @@ class ApiSecurityTest {
     @RestController
     static class ProbeController {
 
-        @GetMapping({ME, "/api/v1/users/profile-options", "/api/v1/users/nickname-availability", "/api/v1/admin/probe"})
+        @GetMapping({"/api/v1/users/profile-options", "/api/v1/users/nickname-availability", "/api/v1/admin/probe"})
         public AuthenticatedUser principal(@AuthenticationPrincipal(errorOnInvalidType = true) AuthenticatedUser user) {
             return user;
         }

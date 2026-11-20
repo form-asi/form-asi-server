@@ -1,8 +1,11 @@
-package com.formasiserver.domain.auth.security;
+package com.formasiserver.global.security;
 
 import com.formasiserver.domain.auth.jwt.JwtProvider;
 import com.formasiserver.domain.auth.jwt.JwtProvider.VerifiedToken;
 import com.formasiserver.domain.auth.repository.AuthTokenRedisRepository;
+import com.formasiserver.domain.auth.security.AuthenticatedUser;
+import com.formasiserver.domain.auth.security.BearerTokenResolver;
+import com.formasiserver.domain.auth.security.SecurityErrorHandler;
 import com.formasiserver.domain.user.entity.User;
 import com.formasiserver.domain.user.repository.UserRepository;
 import com.formasiserver.global.exception.ApiException;
@@ -25,8 +28,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private static final String BEARER_PREFIX = "Bearer ";
-
     private final JwtProvider jwtProvider;
     private final AuthTokenRedisRepository tokenRepository;
     private final UserRepository userRepository;
@@ -41,10 +42,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if (authorization != null && authorization.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
+        String token = BearerTokenResolver.resolve(request.getHeader(HttpHeaders.AUTHORIZATION));
+        if (token != null) {
             try {
-                authenticate(authorization.substring(BEARER_PREFIX.length()));
+                authenticate(token);
             } catch (ApiException exception) {
                 errorHandler.write(response, exception.getErrorCode());
                 return;

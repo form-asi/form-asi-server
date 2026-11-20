@@ -54,6 +54,9 @@ public class JwtProvider {
         Instant issuedAt = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         Instant expiresAt = Objects.requireNonNull(loginExpiresAt, "Login expiry is required")
                 .truncatedTo(ChronoUnit.SECONDS);
+        if (!expiresAt.isAfter(issuedAt)) {
+            throw unauthorized();
+        }
         Assert.isTrue(!expiresAt.isAfter(issuedAt.plus(JwtProperties.MAX_REFRESH_TTL)),
                 "Login expiry exceeds the maximum Refresh Token lifetime");
         return issue(userId, TokenType.REFRESH, issuedAt, expiresAt);

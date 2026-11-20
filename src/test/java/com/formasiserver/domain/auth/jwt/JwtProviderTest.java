@@ -70,8 +70,9 @@ class JwtProviderTest {
         assertThat(replacementClaims.tokenId()).isNotEqualTo(firstClaims.tokenId());
         assertThat(replacementClaims.userId()).isEqualTo(firstClaims.userId());
         assertThat(replacementClaims.expiresAt()).isEqualTo(loginExpiresAt).isEqualTo(firstClaims.expiresAt());
-        assertThatIllegalArgumentException().isThrownBy(() ->
-                provider.issueRefreshToken(USER_ID, Instant.now().minusSeconds(1)));
+        assertThatExceptionOfType(ApiException.class)
+                .isThrownBy(() -> provider.issueRefreshToken(USER_ID, Instant.now().minusSeconds(1)))
+                .satisfies(exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.UNAUTHORIZED));
         assertThatIllegalArgumentException().isThrownBy(() ->
                 provider.issueRefreshToken(USER_ID, Instant.now().plus(Duration.ofDays(15))));
     }

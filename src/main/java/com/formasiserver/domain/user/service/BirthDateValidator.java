@@ -5,6 +5,7 @@ import com.formasiserver.global.exception.ErrorCode;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -17,18 +18,22 @@ public class BirthDateValidator {
         validate(birthDate, Instant.now());
     }
 
+    public int age(LocalDate birthDate) {
+        return age(birthDate, LocalDate.now(KOREA_ZONE));
+    }
+
     void validate(LocalDate birthDate, Instant now) {
         LocalDate today = LocalDate.ofInstant(now, KOREA_ZONE);
+        if (age(birthDate, today) < MINIMUM_AGE) {
+            throw new ApiException(ErrorCode.UNDER_MINIMUM_AGE);
+        }
+    }
+
+    private static int age(LocalDate birthDate, LocalDate today) {
         if (birthDate == null || birthDate.isAfter(today)) {
             throw new ApiException(ErrorCode.BIRTH_DATE_UNAVAILABLE);
         }
-
-        LocalDate eligibleFrom = birthDate.plusYears(MINIMUM_AGE);
-        if (eligibleFrom.getDayOfMonth() != birthDate.getDayOfMonth()) {
-            eligibleFrom = eligibleFrom.plusDays(1);
-        }
-        if (today.isBefore(eligibleFrom)) {
-            throw new ApiException(ErrorCode.UNDER_MINIMUM_AGE);
-        }
+        // A February 29 birthday reaches the next whole year on March 1 in a non-leap year.
+        return Math.toIntExact(ChronoUnit.YEARS.between(birthDate, today));
     }
 }

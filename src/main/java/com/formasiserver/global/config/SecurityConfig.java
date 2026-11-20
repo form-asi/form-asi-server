@@ -3,16 +3,19 @@ package com.formasiserver.global.config;
 import com.formasiserver.domain.auth.jwt.JwtProvider;
 import com.formasiserver.domain.auth.repository.AuthTokenRedisRepository;
 import com.formasiserver.domain.auth.security.AuthProperties;
-import com.formasiserver.domain.auth.security.JwtAuthenticationFilter;
 import com.formasiserver.domain.auth.security.SecurityErrorHandler;
 import com.formasiserver.domain.user.repository.UserRepository;
 import com.formasiserver.global.exception.ErrorCode;
+import com.formasiserver.global.security.JwtAuthenticationFilter;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -40,6 +43,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
 import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClient;
@@ -53,6 +58,8 @@ import tools.jackson.databind.ObjectMapper;
 public class SecurityConfig {
 
     private static final String API_PATH = "/api/v1/**";
+    private static final String REFRESH_PATH = "/api/v1/auth/refresh";
+    private static final String LOGOUT_PATH = "/api/v1/auth/logout";
     private static final int KAKAO_SESSION_TIMEOUT_SECONDS = 300;
 
     @Bean
@@ -64,8 +71,13 @@ public class SecurityConfig {
     public SecurityFilterChain apiSecurityFilterChain(
             HttpSecurity http, JwtProvider jwtProvider, AuthTokenRedisRepository tokenRepository,
             UserRepository userRepository, SecurityErrorHandler errorHandler, AuthProperties properties) throws Exception {
-        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(jwtProvider, tokenRepository, userRepository,
-                errorHandler, new NegatedRequestMatcher(PathPatternRequestMatcher.pathPattern(API_PATH)));
+        RequestMatcher cookieRequests = new OrRequestMatcher(
+                PathPatternRequestMatcher.pathPattern(HttpMethod.POST, REFRESH_PATH),
+                PathPatternRequestMatcher.pathPattern(HttpMethod.POST, LOGOUT_PATH));
+        RequestMatcher excludedFromJwt = new OrRequestMatcher(
+                new NegatedRequestMatcher(PathPatternRequestMatcher.pathPattern(API_PATH)), cookieRequests);
+        JwtAuthenticationFilter jwtFilter = new JwtAuthenticationFilter(
+                jwtProvider, tokenRepository, userRepository, errorHandler, excludedFromJwt);
 
         return http
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -77,12 +89,13 @@ public class SecurityConfig {
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(errorHandler)
                         .accessDeniedHandler(errorHandler))
-                .addFilterAt(corsFilter(properties, errorHandler), CorsFilter.class)
+                .addFilterAt(corsFilter(properties, errorHandler, cookieRequests), CorsFilter.class)
                 .addFilterBefore(jwtFilter, AnonymousAuthenticationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api-docs", "/api-docs/**", "/swagger-ui/**", "/v3/api-docs",
                                 "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+                        .requestMatchers(cookieRequests).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me", "/api/v1/users/profile-options",
                                 "/api/v1/users/nickname-availability").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/me/onboarding").authenticated()
@@ -90,7 +103,8 @@ public class SecurityConfig {
                 .build();
     }
 
-    private CorsFilter corsFilter(AuthProperties properties, SecurityErrorHandler errorHandler) {
+    private CorsFilter corsFilter(AuthProperties properties, SecurityErrorHandler errorHandler,
+            RequestMatcher cookieRequests) {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowedOrigins(properties.allowedOrigins());
         config.setAllowCredentials(true);
@@ -101,6 +115,22 @@ public class SecurityConfig {
         source.registerCorsConfiguration(API_PATH, config);
         CorsFilter filter = new CorsFilter(source);
         filter.setCorsProcessor(new DefaultCorsProcessor() {
+            @Override
+            public boolean processRequest(@Nullable CorsConfiguration config, HttpServletRequest request,
+                    HttpServletResponse response) throws IOException {
+                if (!super.processRequest(config, request, response)) {
+                    return false;
+                }
+                if (cookieRequests.matches(request)) {
+                    List<String> origins = Collections.list(request.getHeaders(HttpHeaders.ORIGIN));
+                    if (origins.size() != 1 || !properties.allowedOrigins().contains(origins.getFirst())) {
+                        rejectRequest(new ServletServerHttpResponse(response));
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             @Override
             protected void rejectRequest(ServerHttpResponse response) throws IOException {
                 ServletServerHttpResponse servletResponse = (ServletServerHttpResponse) response;

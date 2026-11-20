@@ -35,6 +35,11 @@ public class AuthTokenRedisRepository {
                 expirationAt(expiresAt));
     }
 
+    public boolean isCurrentRefresh(VerifiedToken refresh, String token) {
+        String expected = refreshValue(hash(token), refresh.expiresAt());
+        return expected.equals(redis.opsForValue().get(refreshKey(refresh.userId())));
+    }
+
     public boolean rotateRefresh(UUID userId, String currentRefresh, IssuedToken replacement) {
         String currentHash = hash(currentRefresh);
         String replacementHash = hash(replacement.value());

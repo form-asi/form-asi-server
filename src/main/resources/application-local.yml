@@ -17,3 +17,6 @@ server:
     session:
       cookie:
         secure: false
+
+auth:
+  refresh-cookie-secure: false
