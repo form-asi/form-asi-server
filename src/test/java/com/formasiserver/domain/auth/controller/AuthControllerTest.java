@@ -180,7 +180,8 @@ class AuthControllerTest {
 
     private UUID member(int age, UserStatus state) {
         LocalDate birthDate = LocalDate.now(ZoneId.of("Asia/Seoul")).minusYears(age);
-        User user = User.of(UUID.randomUUID().toString(), birthDate);
+        User user = User.of(UUID.randomUUID().toString());
+        ReflectionTestUtils.setField(user, "birthDate", birthDate);
         ReflectionTestUtils.setField(user, "status", state);
         UUID userId = users.save(user).getUserId();
         userIds.add(userId);

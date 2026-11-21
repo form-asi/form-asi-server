@@ -21,6 +21,7 @@ import com.formasiserver.global.exception.ApiException;
 import com.formasiserver.global.exception.ErrorCode;
 import com.formasiserver.global.response.ErrorResponse.ValidationError;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -44,15 +45,21 @@ public class OnboardingService {
     private final UserProfileRepository userProfileRepository;
     private final UserProfileFieldRepository userProfileFieldRepository;
     private final UserProfilePetRepository userProfilePetRepository;
+    private final BirthDateValidator birthDateValidator;
 
     @Transactional
     public OnboardingResponse complete(UUID userId, OnboardingRequest request) {
         User user = requirePendingUser(userId);
+        LocalDate birthDate = user.getBirthDate();
+        if (birthDate == null) {
+            birthDate = request.birthDate();
+        }
+        birthDateValidator.validate(birthDate);
         validateOptions(request);
 
         try {
             saveProfile(user, request);
-            if (userRepository.activateOnboarding(userId, request.nickname(), Instant.now()) == 0) {
+            if (userRepository.activateOnboarding(userId, request.nickname(), birthDate, Instant.now()) == 0) {
                 throw new ApiException(ErrorCode.FORBIDDEN);
             }
         } catch (DataIntegrityViolationException exception) {

@@ -6,11 +6,11 @@ import com.formasiserver.domain.auth.jwt.JwtProvider.VerifiedToken;
 import com.formasiserver.domain.auth.oauth.KakaoOAuth2User;
 import com.formasiserver.domain.auth.repository.AuthTokenRedisRepository;
 import com.formasiserver.domain.user.entity.User;
+import com.formasiserver.domain.user.entity.UserStatus;
 import com.formasiserver.domain.user.repository.UserRepository;
 import com.formasiserver.domain.user.service.BirthDateValidator;
 import com.formasiserver.global.exception.ApiException;
 import com.formasiserver.global.exception.ErrorCode;
-import java.time.LocalDate;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.jspecify.annotations.Nullable;
@@ -27,10 +27,10 @@ public class AuthService {
     private final BirthDateValidator birthDateValidator;
 
     public IssuedToken loginWithKakao(KakaoOAuth2User kakaoUser) {
-        User user = userRepository.findByKakaoId(kakaoUser.getName())
-                .orElseGet(() -> registerKakaoUser(kakaoUser));
+        String kakaoId = kakaoUser.getName();
+        User user = userRepository.findByKakaoId(kakaoId).orElseGet(() -> registerKakaoUser(kakaoId));
         requireAllowedStatus(user);
-        birthDateValidator.validate(user.getBirthDate());
+        validateStoredBirthDate(user);
 
         IssuedToken refresh = jwtProvider.issueRefreshToken(user.getUserId());
         tokenRepository.saveRefresh(user.getUserId(), refresh);
@@ -48,7 +48,7 @@ public class AuthService {
                 .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
         requireAllowedStatus(user);
         try {
-            birthDateValidator.validate(user.getBirthDate());
+            validateStoredBirthDate(user);
         } catch (ApiException exception) {
             if (exception.getErrorCode() == ErrorCode.UNDER_MINIMUM_AGE
                     && !tokenRepository.revokeRefresh(userId, refreshToken)) {
@@ -76,15 +76,18 @@ public class AuthService {
         }
     }
 
-    private User registerKakaoUser(KakaoOAuth2User kakaoUser) {
-        String kakaoId = kakaoUser.getName();
-        LocalDate birthDate = kakaoUser.requireBirthDate();
-        birthDateValidator.validate(birthDate);
+    private User registerKakaoUser(String kakaoId) {
         try {
-            return userRepository.saveAndFlush(User.of(kakaoId, birthDate));
+            return userRepository.saveAndFlush(User.of(kakaoId));
         } catch (DataIntegrityViolationException exception) {
             // The repository transaction has rolled back before looking up a concurrent registration.
             return userRepository.findByKakaoId(kakaoId).orElseThrow(() -> exception);
+        }
+    }
+
+    private void validateStoredBirthDate(User user) {
+        if (user.getBirthDate() != null || user.getStatus() == UserStatus.ACTIVE) {
+            birthDateValidator.validate(user.getBirthDate());
         }
     }
 

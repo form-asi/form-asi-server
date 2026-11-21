@@ -12,6 +12,7 @@ import com.formasiserver.domain.user.entity.UserRole;
 import com.formasiserver.domain.user.entity.UserStatus;
 import com.formasiserver.domain.user.repository.UserRepository;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -68,10 +69,12 @@ class OnboardingTest {
         String nickname = nickname();
         mvc.perform(get(ME).header(HttpHeaders.AUTHORIZATION, access))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.age").isEmpty())
                 .andExpect(jsonPath("$.data.status").value("PENDING"));
         mvc.perform(onboarding(access, """
                 {
-                  "nickname": "%s", "gender": "MALE", "occupation": "OTHER", "occupationOther": "현장 연구",
+                  "nickname": "%s", "birthDate": "2000-01-01", "gender": "MALE",
+                  "occupation": "OTHER", "occupationOther": "현장 연구",
                   "fields": ["DESIGN", "OTHER"], "fieldOther": "환경 연구", "region": "SEOUL",
                   "householdComposition": "OTHER", "householdCompositionOther": "동료와 거주",
                   "householdSize": "TWO", "maritalStatus": "OTHER", "maritalStatusOther": "직접 작성",
@@ -85,7 +88,9 @@ class OnboardingTest {
         mvc.perform(get(ME).header(HttpHeaders.AUTHORIZATION, access))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.nickname").value(nickname))
+                .andExpect(jsonPath("$.data.age").isNumber())
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+        assertThat(userRepository.findById(userId).orElseThrow().getBirthDate()).isEqualTo(LocalDate.of(2000, 1, 1));
 
         assertThat(jdbcTemplate.queryForMap("SELECT * FROM user_profile WHERE user_id = ?", userId))
                 .containsEntry("job_etc", "현장 연구")
@@ -108,6 +113,30 @@ class OnboardingTest {
                 .andExpect(jsonPath("$.error.code").value("ONBOARDING_ALREADY_COMPLETED"));
         assertThat(userRepository.findById(userId).orElseThrow().getNickname()).isEqualTo(nickname);
         assertThat(countRows("user_profile_fields", userId)).isEqualTo(2);
+    }
+
+    @Test
+    void validatesBirthDateBeforeSavingTheProfile() throws Exception {
+        UUID userId = newMember();
+        String access = access(userId);
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Seoul"));
+        LocalDate adultDate = today.minusYears(14);
+        LocalDate underageDate = adultDate.plusDays(1);
+        String profile = requiredProfile(nickname());
+        mvc.perform(onboarding(access, profile.replace("2000-01-01", underageDate.toString())))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("UNDER_MINIMUM_AGE"));
+        mvc.perform(onboarding(access, profile.replace("2000-01-01", today.plusDays(1).toString())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("BIRTH_DATE_UNAVAILABLE"));
+        mvc.perform(onboarding(access, profile.replace("\"birthDate\": \"2000-01-01\", ", "")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("BIRTH_DATE_UNAVAILABLE"));
+        assertPendingWithoutProfile(userId);
+        mvc.perform(onboarding(access, profile.replace("2000-01-01", adultDate.toString())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+        assertThat(userRepository.findById(userId).orElseThrow().getBirthDate()).isEqualTo(adultDate);
     }
 
     @Test
@@ -136,7 +165,7 @@ class OnboardingTest {
         UUID userId = newMember();
         mvc.perform(onboarding(access(userId), """
                 {
-                  "nickname": "%s", "gender": "FEMALE", "occupation": "OTHER",
+                  "nickname": "%s", "birthDate": "2000-01-01", "gender": "FEMALE", "occupation": "OTHER",
                   "fields": ["OTHER", "OTHER"], "fieldOther": " ",
                   "maritalStatus": "OTHER", "maritalStatusOther": "123456789012345678901",
                   "householdCompositionOther": "가구 구성 선택 없음", "petExperience": "NEVER", "pets": ["DOG"]
@@ -149,9 +178,10 @@ class OnboardingTest {
     }
 
     @Test
-    void ignoresExtraFieldsAndStoresOnlyForTheAuthenticatedMember() throws Exception {
+    void preservesAnExistingBirthDateAndStoresOnlyForTheAuthenticatedMember() throws Exception {
         UUID userId = newMember();
         UUID otherId = newMember();
+        jdbcTemplate.update("UPDATE users SET birth_date = ? WHERE user_id = ?", LocalDate.of(2000, 1, 1), userId);
         String body = """
                 {
                   "nickname": "%s", "gender": "MALE", "occupation": "EMPLOYEE", "fields": ["LAW"],
@@ -221,6 +251,7 @@ class OnboardingTest {
         User storedUser = userRepository.findById(userId).orElseThrow();
         assertThat(storedUser.getStatus()).isEqualTo(UserStatus.PENDING);
         assertThat(storedUser.getNickname()).isNull();
+        assertThat(storedUser.getBirthDate()).isNull();
         assertThat(countRows("user_profile", userId)).isZero();
         assertThat(countRows("user_profile_fields", userId)).isZero();
         assertThat(countRows("user_profile_pets", userId)).isOne();
@@ -230,6 +261,7 @@ class OnboardingTest {
         User user = userRepository.findById(userId).orElseThrow();
         assertThat(user.getStatus()).isEqualTo(UserStatus.PENDING);
         assertThat(user.getNickname()).isNull();
+        assertThat(user.getBirthDate()).isNull();
         assertThat(countRows("user_profile", userId)).isZero();
         assertThat(countRows("user_profile_fields", userId)).isZero();
         assertThat(countRows("user_profile_pets", userId)).isZero();
@@ -245,8 +277,7 @@ class OnboardingTest {
     }
 
     private UUID newMember() {
-        UUID userId = userRepository.saveAndFlush(User.of(UUID.randomUUID().toString(), LocalDate.of(2000, 1, 1)))
-                .getUserId();
+        UUID userId = userRepository.saveAndFlush(User.of(UUID.randomUUID().toString())).getUserId();
         createdUsers.add(userId);
         return userId;
     }
@@ -261,7 +292,7 @@ class OnboardingTest {
 
     private String requiredProfile(String nickname) {
         return """
-                {"nickname": "%s", "gender": "MALE", "occupation": "EMPLOYEE", "fields": ["LAW"]}
+                {"nickname": "%s", "birthDate": "2000-01-01", "gender": "MALE", "occupation": "EMPLOYEE", "fields": ["LAW"]}
                 """.formatted(nickname);
     }
 

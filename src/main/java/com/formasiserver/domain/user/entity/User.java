@@ -15,6 +15,7 @@ import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 
 @Getter
 @Entity
@@ -30,8 +31,8 @@ public class User extends BaseTimeEntity {
     @Column(name = "kakao_id", nullable = false, length = 100, updatable = false)
     private String kakaoId;
 
-    @Column(name = "birth_date", nullable = false)
-    private LocalDate birthDate;
+    @Column(name = "birth_date")
+    private @Nullable LocalDate birthDate;
 
     @Column(name = "nickname", length = 10)
     private String nickname;
@@ -47,10 +48,9 @@ public class User extends BaseTimeEntity {
     @Column(name = "notification_enabled", nullable = false)
     private boolean notificationEnabled;
 
-    public static User of(String kakaoId, LocalDate birthDate) {
+    public static User of(String kakaoId) {
         User user = new User();
         user.kakaoId = kakaoId;
-        user.birthDate = birthDate;
         user.role = UserRole.USER;
         user.status = UserStatus.PENDING;
         user.notificationEnabled = true;

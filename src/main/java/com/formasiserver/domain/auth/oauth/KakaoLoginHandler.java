@@ -37,8 +37,8 @@ public class KakaoLoginHandler implements AuthenticationSuccessHandler, Authenti
             refresh = authService.loginWithKakao((KakaoOAuth2User) authentication.getPrincipal());
         } catch (ApiException exception) {
             ErrorCode code = switch (exception.getErrorCode()) {
-                case BIRTH_DATE_AGREEMENT_REQUIRED, BIRTH_DATE_UNAVAILABLE, BIRTH_DATE_VERIFICATION_REQUIRED,
-                        UNDER_MINIMUM_AGE, ACCOUNT_SUSPENDED, ACCOUNT_WITHDRAWN -> exception.getErrorCode();
+                case BIRTH_DATE_UNAVAILABLE, UNDER_MINIMUM_AGE, ACCOUNT_SUSPENDED, ACCOUNT_WITHDRAWN ->
+                        exception.getErrorCode();
                 default -> ErrorCode.INTERNAL_SERVER_ERROR;
             };
             redirectFailure(response, code);

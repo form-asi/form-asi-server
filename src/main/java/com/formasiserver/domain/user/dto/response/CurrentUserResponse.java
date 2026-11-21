@@ -4,5 +4,5 @@ import com.formasiserver.domain.user.entity.UserStatus;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
-public record CurrentUserResponse(UUID userId, @Nullable String nickname, int age, UserStatus status) {
+public record CurrentUserResponse(UUID userId, @Nullable String nickname, @Nullable Integer age, UserStatus status) {
 }

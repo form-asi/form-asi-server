@@ -38,7 +38,7 @@ public final class KakaoOAuth2UserService extends DefaultOAuth2UserService {
         if (!(id instanceof Integer || id instanceof Long) || ((Number) id).longValue() <= 0) {
             throw new OAuth2AuthenticationException(KAKAO_AUTH_UNAVAILABLE);
         }
-        return new KakaoOAuth2User(id.toString(), KakaoBirthDate.from(attributes));
+        return new KakaoOAuth2User(id.toString());
     }
 
 }

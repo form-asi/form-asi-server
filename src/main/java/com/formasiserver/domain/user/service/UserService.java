@@ -7,6 +7,7 @@ import com.formasiserver.domain.user.repository.UserRepository;
 import com.formasiserver.domain.user.utils.NicknameUtils;
 import com.formasiserver.global.exception.ApiException;
 import com.formasiserver.global.exception.ErrorCode;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,11 +29,12 @@ public class UserService {
     public CurrentUserResponse getCurrentUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
+        LocalDate birthDate = user.getBirthDate();
         return switch (user.getStatus()) {
             case SUSPENDED -> throw new ApiException(ErrorCode.ACCOUNT_SUSPENDED);
             case WITHDRAWN -> throw new ApiException(ErrorCode.ACCOUNT_WITHDRAWN);
             case PENDING, ACTIVE -> new CurrentUserResponse(user.getUserId(), user.getNickname(),
-                    birthDateValidator.age(user.getBirthDate()), user.getStatus());
+                    birthDate == null ? null : birthDateValidator.age(birthDate), user.getStatus());
         };
     }
 }

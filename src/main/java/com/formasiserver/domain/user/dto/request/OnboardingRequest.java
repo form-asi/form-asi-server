@@ -15,6 +15,7 @@ import com.formasiserver.domain.user.utils.NicknameUtils;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
+import java.time.LocalDate;
 import java.util.List;
 import org.jspecify.annotations.Nullable;
 
@@ -22,6 +23,7 @@ public record OnboardingRequest(
         @NotNull(message = "닉네임을 입력해주세요.")
         @Pattern(regexp = NicknameUtils.FORMAT, message = NicknameUtils.FORMAT_MESSAGE)
         String nickname,
+        @Nullable LocalDate birthDate,
         @NotNull(message = "성별을 선택해주세요.")
         Gender gender,
         @NotNull(message = "직업을 선택해주세요.")

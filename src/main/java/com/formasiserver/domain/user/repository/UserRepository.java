@@ -2,6 +2,7 @@ package com.formasiserver.domain.user.repository;
 
 import com.formasiserver.domain.user.entity.User;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,11 +17,11 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Modifying
     @Query("""
             update User u
-            set u.nickname = :nickname, u.status = ACTIVE, u.updatedAt = :updatedAt
+            set u.nickname = :nickname, u.birthDate = :birthDate, u.status = ACTIVE, u.updatedAt = :updatedAt
             where u.userId = :userId and u.status = PENDING
             """)
     int activateOnboarding(@Param("userId") UUID userId, @Param("nickname") String nickname,
-            @Param("updatedAt") Instant updatedAt);
+            @Param("birthDate") LocalDate birthDate, @Param("updatedAt") Instant updatedAt);
 
     @Query(value = """
             SELECT EXISTS (

@@ -112,7 +112,7 @@ class KakaoOAuth2LoginTest {
         TOKEN_CALLS.set(0);
         TOKEN_BODY.set(null);
         USER_AUTHORIZATION.set(null);
-        USER_BODY.set(kakaoProfile(BIRTH_DATE));
+        USER_BODY.set("{\"id\":" + kakaoId + "}");
     }
 
     @AfterEach
@@ -135,7 +135,7 @@ class KakaoOAuth2LoginTest {
 
         Cookie refresh = successfulLogin(authorization);
         User member = users.findByKakaoId(kakaoId).orElseThrow();
-        assertThat(member.getBirthDate()).isEqualTo(BIRTH_DATE);
+        assertThat(member.getBirthDate()).isNull();
         assertThat(member.getStatus()).isEqualTo(UserStatus.PENDING);
         assertThat(jwtProvider.verifyRefreshToken(refresh.getValue()).userId()).isEqualTo(member.getUserId());
         assertThat(TOKEN_BODY.get()).contains("grant_type=authorization_code", "code=stub-code",
@@ -149,6 +149,7 @@ class KakaoOAuth2LoginTest {
         mvc.perform(get(ME_PATH).header(HttpHeaders.AUTHORIZATION, "Bearer " + access))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.userId").value(member.getUserId().toString()))
+                .andExpect(jsonPath("$.data.age").isEmpty())
                 .andExpect(jsonPath("$.data.status").value("PENDING"));
 
         expectFailure(mvc.perform(callback(authorization.state()).session(authorization.session())),
@@ -220,10 +221,10 @@ class KakaoOAuth2LoginTest {
         Cookie firstRefresh = successfulLogin(startAuthorization());
         String access = exchangeRefresh(firstRefresh);
         User member = users.findByKakaoId(kakaoId).orElseThrow();
+        ReflectionTestUtils.setField(member, "birthDate", BIRTH_DATE);
         ReflectionTestUtils.setField(member, "status", UserStatus.ACTIVE);
         users.saveAndFlush(member);
 
-        USER_BODY.set("{\"id\":" + kakaoId + "}");
         Cookie secondRefresh = successfulLogin(startAuthorization());
 
         assertThat(jwtProvider.verifyRefreshToken(secondRefresh.getValue()).userId()).isEqualTo(member.getUserId());
@@ -277,29 +278,12 @@ class KakaoOAuth2LoginTest {
         }
     }
 
-    @Test
-    void underageOrMissingConsentDoesNotCreateAMember() throws Exception {
-        LocalDate underage = LocalDate.now(ZoneId.of("Asia/Seoul")).minusYears(13);
-        USER_BODY.set(kakaoProfile(underage));
-        Authorization underageAuthorization = startAuthorization();
-        expectFailure(mvc.perform(callback(underageAuthorization.state()).session(underageAuthorization.session())),
-                "UNDER_MINIMUM_AGE");
-        assertThat(users.findByKakaoId(kakaoId)).isEmpty();
-
-        USER_BODY.set("""
-                {"id":%s,"kakao_account":{"birthyear_needs_agreement":true}}
-                """.formatted(kakaoId));
-        Authorization noConsent = startAuthorization();
-        expectFailure(mvc.perform(callback(noConsent.state()).session(noConsent.session())),
-                "BIRTH_DATE_AGREEMENT_REQUIRED");
-        assertThat(users.findByKakaoId(kakaoId)).isEmpty();
-    }
-
     @ParameterizedTest
     @CsvSource({"SUSPENDED,20,ACCOUNT_SUSPENDED", "WITHDRAWN,20,ACCOUNT_WITHDRAWN",
             "PENDING,13,UNDER_MINIMUM_AGE"})
     void existingMemberMustPassStoredAgeAndStatusChecks(UserStatus state, int age, String error) throws Exception {
-        User member = User.of(kakaoId, LocalDate.now(ZoneId.of("Asia/Seoul")).minusYears(age));
+        User member = User.of(kakaoId);
+        ReflectionTestUtils.setField(member, "birthDate", LocalDate.now(ZoneId.of("Asia/Seoul")).minusYears(age));
         ReflectionTestUtils.setField(member, "status", state);
         users.saveAndFlush(member);
         Authorization authorization = startAuthorization();
@@ -353,18 +337,12 @@ class KakaoOAuth2LoginTest {
         assertThat(location).isEqualTo(FRONTEND_CALLBACK + "?error=" + error);
     }
 
-    private String kakaoProfile(LocalDate birthDate) {
-        return """
-                {"id":%s,"kakao_account":{"birthyear":"%04d","birthday":"%02d%02d","birthday_type":"SOLAR"}}
-                """.formatted(kakaoId, birthDate.getYear(), birthDate.getMonthValue(), birthDate.getDayOfMonth());
-    }
-
     private Authorization startAuthorization() throws Exception {
         MvcResult result = mvc.perform(get(AUTHORIZATION_PATH).secure(true))
                 .andExpect(status().isFound())
                 .andReturn();
         String redirect = result.getResponse().getRedirectedUrl();
-        assertThat(redirect).startsWith(stubUrl("/authorize?"));
+        assertThat(redirect).startsWith(stubUrl("/authorize?")).doesNotContain("birthday", "birthyear");
         String state = UriComponentsBuilder.fromUriString(redirect).build().getQueryParams().getFirst("state");
         assertThat(state).isNotBlank();
         return new Authorization(UriUtils.decode(state, StandardCharsets.UTF_8),

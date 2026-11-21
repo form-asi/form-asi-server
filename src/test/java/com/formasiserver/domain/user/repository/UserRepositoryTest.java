@@ -15,7 +15,6 @@ import com.formasiserver.domain.user.entity.profile.Gender;
 import com.formasiserver.domain.user.entity.profile.PetType;
 import jakarta.persistence.EntityManager;
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
@@ -32,8 +31,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @SpringBootTest
 class UserRepositoryTest {
-
-    private static final LocalDate BIRTH_DATE = LocalDate.of(2000, 1, 1);
 
     private final String kakaoId = Long.toString(ThreadLocalRandom.current().nextLong(1, Long.MAX_VALUE));
 
@@ -54,12 +51,12 @@ class UserRepositoryTest {
     @Test
     void persistsNewMemberDefaultsAndAuditInstants() {
         Instant beforeInsert = Instant.now();
-        User user = userRepository.saveAndFlush(User.of(kakaoId, BIRTH_DATE));
+        User user = userRepository.saveAndFlush(User.of(kakaoId));
         Instant afterInsert = Instant.now();
         User storedUser = userRepository.findByKakaoId(kakaoId).orElseThrow();
 
         assertThat(storedUser.getUserId()).isNotNull().isEqualTo(user.getUserId());
-        assertThat(storedUser.getBirthDate()).isEqualTo(BIRTH_DATE);
+        assertThat(storedUser.getBirthDate()).isNull();
         assertThat(storedUser.getNickname()).isNull();
         assertThat(storedUser.getRole()).isEqualTo(UserRole.USER);
         assertThat(storedUser.getStatus()).isEqualTo(UserStatus.PENDING);
@@ -96,8 +93,8 @@ class UserRepositoryTest {
 
     @Test
     void checksAndEnforcesNicknameUniquenessUsingTheSameCaseRules() {
-        User firstUser = userRepository.saveAndFlush(User.of(kakaoId, BIRTH_DATE));
-        User secondUser = userRepository.saveAndFlush(User.of(UUID.randomUUID().toString(), BIRTH_DATE));
+        User firstUser = userRepository.saveAndFlush(User.of(kakaoId));
+        User secondUser = userRepository.saveAndFlush(User.of(UUID.randomUUID().toString()));
         String nickname = "한A" + UUID.randomUUID().toString().substring(0, 8);
 
         try {
@@ -118,7 +115,7 @@ class UserRepositoryTest {
     @Test
     @Transactional
     void mapsOnboardingProfileAndKeepsUnansweredAndNegativeChoicesDistinct() {
-        User user = userRepository.saveAndFlush(User.of(kakaoId, BIRTH_DATE));
+        User user = userRepository.saveAndFlush(User.of(kakaoId));
         UUID userId = user.getUserId();
         jdbcTemplate.update("""
                 INSERT INTO user_profile_fields (user_id, field, created_at, updated_at)
@@ -177,7 +174,7 @@ class UserRepositoryTest {
     private boolean insertAtBarrier(CyclicBarrier start) throws Exception {
         start.await(5, TimeUnit.SECONDS);
         try {
-            userRepository.saveAndFlush(User.of(kakaoId, BIRTH_DATE));
+            userRepository.saveAndFlush(User.of(kakaoId));
             return true;
         } catch (DataIntegrityViolationException exception) {
             assertThat(exception).hasMessageContaining("uk_users_kakao_id");

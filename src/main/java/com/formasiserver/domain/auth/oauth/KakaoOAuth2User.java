@@ -1,6 +1,5 @@
 package com.formasiserver.domain.auth.oauth;
 
-import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +12,6 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 public final class KakaoOAuth2User implements OAuth2User {
 
     private final String kakaoId;
-    private final KakaoBirthDate birthDate;
 
     @Override
     public String getName() {
@@ -30,7 +28,4 @@ public final class KakaoOAuth2User implements OAuth2User {
         return List.of(new SimpleGrantedAuthority("OAUTH2_USER"));
     }
 
-    public LocalDate requireBirthDate() {
-        return birthDate.requireSolarDate();
-    }
 }

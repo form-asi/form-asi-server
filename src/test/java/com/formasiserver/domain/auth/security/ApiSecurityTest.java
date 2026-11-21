@@ -210,7 +210,8 @@ class ApiSecurityTest {
     }
 
     private void member(UserStatus userStatus, UserRole role) {
-        User user = User.of("1234", LocalDate.of(2000, 1, 1));
+        User user = User.of("1234");
+        ReflectionTestUtils.setField(user, "birthDate", LocalDate.of(2000, 1, 1));
         ReflectionTestUtils.setField(user, "userId", USER_ID);
         ReflectionTestUtils.setField(user, "status", userStatus);
         ReflectionTestUtils.setField(user, "role", role);
