@@ -8,7 +8,7 @@ import com.formasiserver.domain.user.dto.response.OnboardingResponse;
 import com.formasiserver.domain.user.dto.response.ProfileOptionsResponse;
 import com.formasiserver.domain.user.service.OnboardingService;
 import com.formasiserver.domain.user.service.UserService;
-import com.formasiserver.global.response.ApiResponse;
+import com.formasiserver.global.response.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,31 +22,35 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/users")
-public class UserController {
+public class UserController implements UserApi {
 
     private final UserService userService;
     private final OnboardingService onboardingService;
 
+    @Override
     @GetMapping("/me")
-    public ApiResponse<CurrentUserResponse> me(
+    public BaseResponse<CurrentUserResponse> me(
             @AuthenticationPrincipal AuthenticatedUser principal) {
-        return ApiResponse.success(userService.getCurrentUser(principal.userId()));
+        return BaseResponse.success(userService.getCurrentUser(principal.userId()));
     }
 
+    @Override
     @GetMapping("/profile-options")
-    public ApiResponse<ProfileOptionsResponse> profileOptions() {
-        return ApiResponse.success(ProfileOptionsResponse.fromOptions());
+    public BaseResponse<ProfileOptionsResponse> profileOptions() {
+        return BaseResponse.success(ProfileOptionsResponse.fromOptions());
     }
 
+    @Override
     @GetMapping("/nickname-availability")
-    public ApiResponse<NicknameAvailabilityResponse> nicknameAvailability(@RequestParam String nickname) {
-        return ApiResponse.success(userService.checkNicknameAvailability(nickname));
+    public BaseResponse<NicknameAvailabilityResponse> nicknameAvailability(@RequestParam String nickname) {
+        return BaseResponse.success(userService.checkNicknameAvailability(nickname));
     }
 
+    @Override
     @PostMapping("/me/onboarding")
-    public ApiResponse<OnboardingResponse> completeOnboarding(
+    public BaseResponse<OnboardingResponse> completeOnboarding(
             @AuthenticationPrincipal AuthenticatedUser principal,
             @Valid @RequestBody OnboardingRequest request) {
-        return ApiResponse.success(onboardingService.complete(principal.userId(), request));
+        return BaseResponse.success(onboardingService.complete(principal.userId(), request));
     }
 }

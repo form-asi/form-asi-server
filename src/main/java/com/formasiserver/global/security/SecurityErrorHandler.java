@@ -3,7 +3,7 @@ package com.formasiserver.global.security;
 import com.formasiserver.domain.auth.security.AuthenticatedUser;
 import com.formasiserver.domain.user.entity.UserStatus;
 import com.formasiserver.global.exception.ErrorCode;
-import com.formasiserver.global.response.ApiResponse;
+import com.formasiserver.global.response.BaseResponse;
 import com.formasiserver.global.response.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -50,6 +50,6 @@ public class SecurityErrorHandler implements AuthenticationEntryPoint, AccessDen
         }
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(),
-                ApiResponse.fail(ErrorResponse.of(error.getCode(), error.getMessage())));
+                BaseResponse.fail(ErrorResponse.of(error.getCode(), error.getMessage())));
     }
 }
