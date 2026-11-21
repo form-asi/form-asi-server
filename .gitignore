@@ -40,6 +40,7 @@ out/
 .env
 .env.*
 !.env.example
+/src/test/resources/application.properties
 
 ### Local docs ###
 /docs/
