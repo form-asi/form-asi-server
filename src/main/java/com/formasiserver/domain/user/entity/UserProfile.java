@@ -22,8 +22,10 @@ import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.util.UUID;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.jspecify.annotations.Nullable;
 
 @Getter
 @Entity
@@ -84,4 +86,35 @@ public class UserProfile extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "driver_license", length = 20)
     private DriverLicense driverLicense;
+
+    @Builder
+    private UserProfile(
+            User user,
+            Gender gender,
+            Occupation occupation,
+            @Nullable String occupationOther,
+            @Nullable Region region,
+            @Nullable HouseholdComposition householdComposition,
+            @Nullable String householdCompositionOther,
+            @Nullable HouseholdSize householdSize,
+            @Nullable MaritalStatus maritalStatus,
+            @Nullable String maritalStatusOther,
+            @Nullable ChildrenCount childrenCount,
+            @Nullable PetExperience petExperience,
+            @Nullable DriverLicense driverLicense
+    ) {
+        this.user = user;
+        this.gender = gender;
+        this.occupation = occupation;
+        this.occupationOther = occupationOther;
+        this.region = region;
+        this.householdComposition = householdComposition;
+        this.householdCompositionOther = householdCompositionOther;
+        this.householdSize = householdSize;
+        this.maritalStatus = maritalStatus;
+        this.maritalStatusOther = maritalStatusOther;
+        this.childrenCount = childrenCount;
+        this.petExperience = petExperience;
+        this.driverLicense = driverLicense;
+    }
 }

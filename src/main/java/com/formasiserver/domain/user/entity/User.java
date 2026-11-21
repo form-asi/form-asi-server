@@ -56,4 +56,5 @@ public class User extends BaseTimeEntity {
         user.notificationEnabled = true;
         return user;
     }
+
 }

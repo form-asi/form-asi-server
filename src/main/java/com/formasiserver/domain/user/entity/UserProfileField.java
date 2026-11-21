@@ -40,4 +40,12 @@ public class UserProfileField extends BaseTimeEntity {
 
     @Column(name = "field_etc", length = 20)
     private @Nullable String customText;
+
+    public static UserProfileField of(User user, Field code, @Nullable String customText) {
+        UserProfileField field = new UserProfileField();
+        field.user = user;
+        field.code = code;
+        field.customText = customText;
+        return field;
+    }
 }

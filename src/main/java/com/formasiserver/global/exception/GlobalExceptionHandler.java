@@ -2,10 +2,12 @@ package com.formasiserver.global.exception;
 
 import com.formasiserver.global.response.ApiResponse;
 import com.formasiserver.global.response.ErrorResponse;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -15,7 +17,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
-import java.util.List;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 @Slf4j
 @RestControllerAdvice
@@ -27,7 +29,8 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         if (code.getStatus().is5xxServerError()) {
             log.error("API exception: {}", code.getCode(), e);
         }
-        return toResponseEntity(code);
+        return ResponseEntity.status(code.getStatus())
+                .body(ApiResponse.fail(ErrorResponse.of(code.getCode(), code.getMessage(), e.getValidationErrors())));
     }
 
     // MVC 실행 중 발생한 보안 예외. 필터 단계의 예외는 Security 설정에서 별도로 처리한다.
@@ -66,6 +69,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                             error.getDefaultMessage()
                     ))
                     .toList();
+        } else if (ex instanceof HttpMessageNotReadableException
+                && ex.getCause() instanceof MismatchedInputException mismatch
+                && !mismatch.getPath().isEmpty()) {
+            String field = mismatch.getPath().getFirst().getPropertyName();
+            if (field != null) {
+                code = ErrorCode.VALIDATION_FAILED;
+                errors = List.of(new ErrorResponse.ValidationError(field, "허용된 형식과 값을 확인해주세요."));
+            }
         }
 
         if (statusCode.is5xxServerError()) {

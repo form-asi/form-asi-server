@@ -4,10 +4,10 @@ import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
 import com.formasiserver.domain.user.dto.response.NicknameAvailabilityResponse;
 import com.formasiserver.domain.user.entity.User;
 import com.formasiserver.domain.user.repository.UserRepository;
+import com.formasiserver.domain.user.utils.NicknameUtils;
 import com.formasiserver.global.exception.ApiException;
 import com.formasiserver.global.exception.ErrorCode;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,13 +15,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserService {
 
-    private static final Pattern NICKNAME_PATTERN = Pattern.compile("[가-힣ㄱ-ㅎㅏ-ㅣA-Za-z0-9]{2,10}");
-
     private final UserRepository userRepository;
     private final BirthDateValidator birthDateValidator;
 
     public NicknameAvailabilityResponse checkNicknameAvailability(String nickname) {
-        if (!NICKNAME_PATTERN.matcher(nickname).matches()) {
+        if (!NicknameUtils.isValid(nickname)) {
             throw new ApiException(ErrorCode.INVALID_NICKNAME);
         }
         return new NicknameAvailabilityResponse(!userRepository.existsByNicknameIgnoringCase(nickname));

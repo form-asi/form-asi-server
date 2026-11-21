@@ -44,7 +44,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootTest(properties = "AUTH_ALLOWED_ORIGINS=https://form.example,http://localhost:5173")
@@ -120,8 +119,8 @@ class ApiSecurityTest {
             throws Exception {
         member(userStatus, role);
         UUID otherUser = UUID.randomUUID();
-        MvcResult result = mvc.perform(post("/api/v1/users/me/onboarding").header(HttpHeaders.AUTHORIZATION, access())
-                        .header("X-User-Id", otherUser).param("userId", otherUser.toString()))
+        MvcResult result = mvc.perform(get("/api/v1/users/profile-options").header(HttpHeaders.AUTHORIZATION, access())
+                        .header("X-User-Id", otherUser).param("userId", otherUser.toString()).param("principalProbe", ""))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(USER_ID.toString()))
                 .andExpect(jsonPath("$.role").value(role.name()))
@@ -149,7 +148,7 @@ class ApiSecurityTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.available").value(true));
         mvc.perform(post("/api/v1/users/me/onboarding").header(HttpHeaders.AUTHORIZATION, access))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
         mvc.perform(post(ME).header(HttpHeaders.AUTHORIZATION, access))
                 .andExpect(status().isForbidden()).andExpect(jsonPath("$.error.code").value("PROFILE_REQUIRED"));
     }
@@ -227,12 +226,12 @@ class ApiSecurityTest {
     static class ProbeController {
 
         @GetMapping("/api/v1/admin/probe")
-        public AuthenticatedUser principal(@AuthenticationPrincipal(errorOnInvalidType = true) AuthenticatedUser user) {
+        public AuthenticatedUser principal(@AuthenticationPrincipal AuthenticatedUser user) {
             return user;
         }
 
-        @PostMapping("/api/v1/users/me/onboarding")
-        public AuthenticatedUser onboarding(@AuthenticationPrincipal(errorOnInvalidType = true) AuthenticatedUser user) {
+        @GetMapping(path = "/api/v1/users/profile-options", params = "principalProbe")
+        public AuthenticatedUser profileOptions(@AuthenticationPrincipal AuthenticatedUser user) {
             return user;
         }
 

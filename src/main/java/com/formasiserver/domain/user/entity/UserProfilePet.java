@@ -36,4 +36,11 @@ public class UserProfilePet extends BaseTimeEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "pet_type", nullable = false, length = 40)
     private PetType code;
+
+    public static UserProfilePet of(User user, PetType code) {
+        UserProfilePet pet = new UserProfilePet();
+        pet.user = user;
+        pet.code = code;
+        return pet;
+    }
 }

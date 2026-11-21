@@ -11,6 +11,8 @@ public enum ErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "INVALID_REQUEST", "올바르지 않은 요청입니다."),
     VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "입력값을 확인해주세요."),
     INVALID_NICKNAME(HttpStatus.BAD_REQUEST, "INVALID_NICKNAME", "닉네임은 한글, 영문, 숫자로 2~10자를 입력해주세요."),
+    NICKNAME_ALREADY_IN_USE(HttpStatus.CONFLICT, "NICKNAME_ALREADY_IN_USE", "이미 사용 중인 닉네임입니다."),
+    ONBOARDING_ALREADY_COMPLETED(HttpStatus.CONFLICT, "ONBOARDING_ALREADY_COMPLETED", "이미 프로필 입력을 완료했습니다."),
     KAKAO_LOGIN_CANCELLED(HttpStatus.BAD_REQUEST, "KAKAO_LOGIN_CANCELLED", "카카오 로그인이 취소됐습니다."),
     OAUTH_STATE_INVALID(HttpStatus.BAD_REQUEST, "OAUTH_STATE_INVALID", "카카오 로그인을 처음부터 다시 시작해주세요."),
     BIRTH_DATE_AGREEMENT_REQUIRED(HttpStatus.BAD_REQUEST, "BIRTH_DATE_AGREEMENT_REQUIRED", "카카오 생년월일 제공에 동의해주세요."),
