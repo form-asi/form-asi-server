@@ -35,8 +35,8 @@ auth:
     secret-key: ${JWT_SECRET_KEY}
     issuer: ${JWT_ISSUER:form-asi-server}
     audience: ${JWT_AUDIENCE:form-asi-api}
-    access-ttl: ${JWT_ACCESS_TTL:30m}
-    refresh-ttl: ${JWT_REFRESH_TTL:14d}
+    access-ttl: ${JWT_ACCESS_TTL}
+    refresh-ttl: ${JWT_REFRESH_TTL}
 
 springdoc:
   swagger-ui:
