@@ -40,3 +40,11 @@ out/
 .env
 .env.*
 !.env.example
+/src/test/resources/application.properties
+
+### Local docs ###
+/docs/
+
+### Local Docker data ###
+/docker/postgres_data/
+/docker/valkey_data/

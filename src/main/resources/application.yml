@@ -1,0 +1,43 @@
+spring:
+  profiles:
+    default: local
+  application:
+    name: form-asi-server
+  security:
+    oauth2:
+      client:
+        registration:
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID}
+            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-authentication-method: client_secret_post
+            authorization-grant-type: authorization_code
+            redirect-uri: ${KAKAO_REDIRECT_URI}
+        provider:
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
+
+server:
+  servlet:
+    session:
+      cookie:
+        http-only: true
+        secure: true
+        same-site: lax
+
+auth:
+  allowed-origins: ${AUTH_ALLOWED_ORIGINS:}
+  login-redirect-url: ${AUTH_LOGIN_REDIRECT_URL:}
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    issuer: ${JWT_ISSUER:form-asi-server}
+    audience: ${JWT_AUDIENCE:form-asi-api}
+    access-ttl: ${JWT_ACCESS_TTL}
+    refresh-ttl: ${JWT_REFRESH_TTL}
+
+springdoc:
+  swagger-ui:
+    path: /api-docs
