@@ -48,4 +48,8 @@ public class UserProfileField extends BaseTimeEntity {
         field.customText = customText;
         return field;
     }
+
+    public void changeCustomText(@Nullable String customText) {
+        this.customText = customText;
+    }
 }

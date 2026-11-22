@@ -4,10 +4,12 @@ import static com.formasiserver.global.config.SwaggerConfig.BEARER_AUTH;
 
 import com.formasiserver.domain.auth.security.AuthenticatedUser;
 import com.formasiserver.domain.user.dto.request.OnboardingRequest;
+import com.formasiserver.domain.user.dto.request.ProfileUpdateRequest;
 import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
 import com.formasiserver.domain.user.dto.response.NicknameAvailabilityResponse;
 import com.formasiserver.domain.user.dto.response.OnboardingResponse;
 import com.formasiserver.domain.user.dto.response.ProfileOptionsResponse;
+import com.formasiserver.domain.user.dto.response.UserProfileResponse;
 import com.formasiserver.global.response.BaseResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -18,7 +20,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "User", description = "내 정보를 확인하고 온보딩을 완료할 때 사용합니다.")
+@Tag(name = "User", description = "내 정보를 확인하고 프로필을 등록하거나 수정할 때 사용합니다.")
 @SecurityRequirement(name = BEARER_AUTH)
 @ApiResponse(responseCode = "401",
         description = "유효한 Access 토큰이 필요합니다.",
@@ -39,8 +41,37 @@ public interface UserApi {
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
     BaseResponse<CurrentUserResponse> me(@Parameter(hidden = true) AuthenticatedUser principal);
 
+    @Operation(summary = "내 프로필 상세 조회", description = """
+            온보딩을 완료한 회원이 현재 저장된 프로필을 확인할 수 있습니다.
+            선택 항목에 저장된 값이 없으면 `null`을, 선택한 반려동물 종류가 없으면 빈 배열을 반환합니다.
+            나이는 생년월일을 기준으로 계산한 만 나이입니다.
+            """)
+    @ApiResponse(responseCode = "200", description = "내 프로필 상세 조회 성공", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "403", description = "온보딩 전이거나 정지 또는 탈퇴한 계정",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "404", description = "저장된 프로필을 찾을 수 없습니다.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
+    BaseResponse<UserProfileResponse> myProfile(@Parameter(hidden = true) AuthenticatedUser principal);
+
+    @Operation(summary = "내 프로필 수정", description = """
+            온보딩을 완료한 회원이 닉네임과 프로필을 수정할 수 있습니다.
+            필수 항목과 유지할 선택 항목을 함께 보내세요. 생략하거나 `null`로 보낸 선택 항목은 비워집니다.
+            생년월일과 나이는 변경할 수 없습니다.
+            """)
+    @ApiResponse(responseCode = "200", description = "저장된 프로필", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "400", description = "필수 항목이 비어 있거나 입력이 올바르지 않습니다.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "403", description = "온보딩 전이거나 정지 또는 탈퇴한 계정",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "404", description = "저장된 프로필을 찾을 수 없습니다.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
+    @ApiResponse(responseCode = "409", description = "이미 사용 중인 닉네임입니다.",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
+    BaseResponse<UserProfileResponse> updateMyProfile(@Parameter(hidden = true) AuthenticatedUser principal,
+            ProfileUpdateRequest request);
+
     @Operation(summary = "프로필 선택지 조회",
-            description = "온보딩 화면에 보여줄 선택지입니다. 화면에는 `label`을 표시하고, 선택한 값은 `code`로 보내세요.")
+            description = "프로필 화면에 보여줄 선택지입니다. 화면에는 `label`을 표시하고, 선택한 값은 `code`로 보내세요.")
     @ApiResponse(responseCode = "200", description = "프로필 선택지 조회 성공",
             useReturnTypeSchema = true)
     @ApiResponse(responseCode = "403", description = "정지 또는 탈퇴한 계정",

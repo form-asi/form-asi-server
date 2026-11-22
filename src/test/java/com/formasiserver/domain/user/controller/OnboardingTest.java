@@ -1,8 +1,10 @@
 package com.formasiserver.domain.user.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -15,6 +17,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -39,6 +42,7 @@ class OnboardingTest {
 
     private static final String ONBOARDING = "/api/v1/users/me/onboarding";
     private static final String ME = "/api/v1/users/me";
+    private static final String MY_PROFILE = "/api/v1/users/me/profile";
 
     private final List<UUID> createdUsers = new ArrayList<>();
 
@@ -54,6 +58,7 @@ class OnboardingTest {
     @AfterEach
     void removeTestUsers() {
         for (UUID userId : createdUsers) {
+            jdbcTemplate.update("DELETE FROM profile_change_log WHERE user_id = ?", userId);
             jdbcTemplate.update("DELETE FROM user_profile_pets WHERE user_id = ?", userId);
             jdbcTemplate.update("DELETE FROM user_profile_fields WHERE user_id = ?", userId);
             jdbcTemplate.update("DELETE FROM user_profile WHERE user_id = ?", userId);
@@ -62,11 +67,82 @@ class OnboardingTest {
     }
 
     @Test
+    void updatesOnlyTheSignedInMembersProfileAndLogsActualChanges() throws Exception {
+        UUID userId = newMember();
+        UUID otherId = newMember();
+        String access = access(userId);
+        String oldNickname = nickname();
+        String newNickname = nickname();
+        String otherNickname = nickname();
+        mvc.perform(onboarding(access, requiredProfile(oldNickname).replace("\"fields\":",
+                        "\"region\": \"SEOUL\", \"petExperience\": \"CURRENT\", \"pets\": [\"DOG\"], \"fields\":")))
+                .andExpect(status().isOk());
+        mvc.perform(onboarding(access(otherId), requiredProfile(otherNickname))).andExpect(status().isOk());
+        String update = """
+                {"nickname": "%s", "gender": "FEMALE", "occupation": "EMPLOYEE", "fields": ["LAW", "OTHER"],
+                 "fieldOther": "환경 연구", "birthDate": "2020-01-01", "age": 99, "userId": "%s"}
+                """.formatted(newNickname, otherId);
+        mvc.perform(profileUpdate(access, update))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value(newNickname))
+                .andExpect(jsonPath("$.data.gender").value("FEMALE"))
+                .andExpect(jsonPath("$.data.fields").value(containsInAnyOrder("LAW", "OTHER")))
+                .andExpect(jsonPath("$.data.fieldOther").value("환경 연구"))
+                .andExpect(jsonPath("$.data.pets").isEmpty())
+                .andExpect(jsonPath("$.data.region").isEmpty());
+        assertThat(userRepository.findById(userId).orElseThrow().getBirthDate()).isEqualTo(LocalDate.of(2000, 1, 1));
+        assertThat(userRepository.findById(otherId).orElseThrow().getNickname()).isEqualTo(otherNickname);
+        assertThat(countRows("profile_change_log", otherId)).isZero();
+        assertThat(changedItems(userId)).containsExactlyInAnyOrder(
+                "nickname", "gender", "region", "petExperience", "fields", "fieldOther", "pets");
+
+        mvc.perform(profileUpdate(access, update.replace("\"LAW\", \"OTHER\"", "\"OTHER\", \"LAW\"")))
+                .andExpect(status().isOk());
+        assertThat(countRows("profile_change_log", userId)).isOne();
+        mvc.perform(profileUpdate(access, update.replace("환경 연구", "교육 연구")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.fieldOther").value("교육 연구"));
+        assertThat(countRows("profile_change_log", userId)).isEqualTo(2);
+        assertThat(changedItems(userId)).containsExactly("fieldOther");
+    }
+
+    @Test
+    void rejectsProfileEditsBeforeOnboardingAndKeepsProfileOnNicknameConflict() throws Exception {
+        UUID userId = newMember();
+        UUID otherId = newMember();
+        String access = access(userId);
+        String oldNickname = nickname();
+        String otherNickname = nickname();
+        String update = requiredProfile(otherNickname.toLowerCase(Locale.ROOT)).replace("MALE", "FEMALE");
+
+        mvc.perform(put(MY_PROFILE).contentType(MediaType.APPLICATION_JSON).content(update))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(profileUpdate(access, update))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("PROFILE_REQUIRED"));
+        mvc.perform(onboarding(access, requiredProfile(oldNickname))).andExpect(status().isOk());
+        mvc.perform(onboarding(access(otherId), requiredProfile(otherNickname))).andExpect(status().isOk());
+        mvc.perform(profileUpdate(access, update))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("NICKNAME_ALREADY_IN_USE"));
+        mvc.perform(get(MY_PROFILE).header(HttpHeaders.AUTHORIZATION, access))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value(oldNickname))
+                .andExpect(jsonPath("$.data.gender").value("MALE"));
+        assertThat(countRows("profile_change_log", userId)).isZero();
+    }
+
+    @Test
     void storesTheWholeProfileAndReadsActiveWithTheSameAccessToken() throws Exception {
         UUID userId = newMember();
         UUID otherId = newMember();
         String access = access(userId);
         String nickname = nickname();
+        mvc.perform(get(MY_PROFILE))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(get(MY_PROFILE).header(HttpHeaders.AUTHORIZATION, access))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error.code").value("PROFILE_REQUIRED"));
         mvc.perform(get(ME).header(HttpHeaders.AUTHORIZATION, access))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.age").isEmpty())
@@ -90,6 +166,27 @@ class OnboardingTest {
                 .andExpect(jsonPath("$.data.nickname").value(nickname))
                 .andExpect(jsonPath("$.data.age").isNumber())
                 .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+        mvc.perform(get(MY_PROFILE).header(HttpHeaders.AUTHORIZATION, access)
+                        .param("userId", otherId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.nickname").value(nickname))
+                .andExpect(jsonPath("$.data.age").isNumber())
+                .andExpect(jsonPath("$.data.birthDate").doesNotHaveJsonPath())
+                .andExpect(jsonPath("$.data.gender").value("MALE"))
+                .andExpect(jsonPath("$.data.occupation").value("OTHER"))
+                .andExpect(jsonPath("$.data.occupationOther").value("현장 연구"))
+                .andExpect(jsonPath("$.data.fields").value(containsInAnyOrder("DESIGN", "OTHER")))
+                .andExpect(jsonPath("$.data.fieldOther").value("환경 연구"))
+                .andExpect(jsonPath("$.data.region").value("SEOUL"))
+                .andExpect(jsonPath("$.data.householdComposition").value("OTHER"))
+                .andExpect(jsonPath("$.data.householdCompositionOther").value("동료와 거주"))
+                .andExpect(jsonPath("$.data.householdSize").value("TWO"))
+                .andExpect(jsonPath("$.data.maritalStatus").value("OTHER"))
+                .andExpect(jsonPath("$.data.maritalStatusOther").value("직접 작성"))
+                .andExpect(jsonPath("$.data.childrenCount").value("NONE"))
+                .andExpect(jsonPath("$.data.petExperience").value("PAST"))
+                .andExpect(jsonPath("$.data.pets").value(containsInAnyOrder("DOG", "CAT")))
+                .andExpect(jsonPath("$.data.driverLicense").value("CLASS_1"));
         assertThat(userRepository.findById(userId).orElseThrow().getBirthDate()).isEqualTo(LocalDate.of(2000, 1, 1));
 
         assertThat(jdbcTemplate.queryForMap("SELECT * FROM user_profile WHERE user_id = ?", userId))
@@ -299,5 +396,19 @@ class OnboardingTest {
     private MockHttpServletRequestBuilder onboarding(String access, String body) {
         return post(ONBOARDING).header(HttpHeaders.AUTHORIZATION, access)
                 .contentType(MediaType.APPLICATION_JSON).content(body);
+    }
+
+    private MockHttpServletRequestBuilder profileUpdate(String access, String body) {
+        return put(MY_PROFILE).header(HttpHeaders.AUTHORIZATION, access)
+                .contentType(MediaType.APPLICATION_JSON).content(body);
+    }
+
+    private List<String> changedItems(UUID userId) {
+        return jdbcTemplate.queryForList("""
+                SELECT unnest(changed_items)
+                FROM (
+                    SELECT changed_items FROM profile_change_log WHERE user_id = ? ORDER BY id DESC LIMIT 1
+                ) latest
+                """, String.class, userId);
     }
 }
