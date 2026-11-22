@@ -28,14 +28,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 public interface UserApi {
 
     @Operation(summary = "내 정보 조회", description = """
-            로그인한 회원의 ID, 닉네임, 나이, 상태를 확인할 수 있습니다.
+            로그인한 회원의 ID, 닉네임, 나이, 상태, 현재 도움 시간을 확인할 수 있습니다.
             `status`가 `PENDING`이면 온보딩을 진행하세요. 아직 생년월일이 저장되지 않았다면 `age`는 `null`입니다.
+            `helpTimeMinutes`는 분 단위 잔액입니다. 시간 계정이 없으면 `0`이며 잔액이 음수면 그대로 반환합니다.
             """)
     @ApiResponse(responseCode = "200", description = "내 정보 조회 성공",
             useReturnTypeSchema = true,
             content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "온보딩 전", value = """
                     {"success":true,"data":{"userId":"e7cc72fc-8b37-44eb-a154-051f5652a9bd","nickname":null,
-                    "age":null,"status":"PENDING"},"error":null}
+                    "age":null,"status":"PENDING","helpTimeMinutes":0},"error":null}
                     """)))
     @ApiResponse(responseCode = "403", description = "정지 또는 탈퇴한 계정",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))

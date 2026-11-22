@@ -1,5 +1,7 @@
 package com.formasiserver.domain.user.service;
 
+import com.formasiserver.domain.helptime.entity.TimeAccount;
+import com.formasiserver.domain.helptime.repository.TimeAccountRepository;
 import com.formasiserver.domain.user.dto.request.ProfileUpdateRequest;
 import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
 import com.formasiserver.domain.user.dto.response.NicknameAvailabilityResponse;
@@ -47,6 +49,7 @@ public class UserService {
     private final UserProfileFieldRepository userProfileFieldRepository;
     private final UserProfilePetRepository userProfilePetRepository;
     private final ProfileChangeLogRepository profileChangeLogRepository;
+    private final TimeAccountRepository timeAccountRepository;
 
     public NicknameAvailabilityResponse checkNicknameAvailability(String nickname) {
         if (!NicknameUtils.isValid(nickname)) {
@@ -56,24 +59,31 @@ public class UserService {
     }
 
     public CurrentUserResponse getCurrentUser(UUID userId) {
+        User user = requireCurrentUser(userId);
+        long helpTimeMinutes = timeAccountRepository.findByUser_UserId(user.getUserId())
+                .map(TimeAccount::getBalanceMinutes)
+                .orElse(0L);
+        return new CurrentUserResponse(user.getUserId(), user.getNickname(), age(user), user.getStatus(), helpTimeMinutes);
+    }
+
+    private User requireCurrentUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
         return switch (user.getStatus()) {
             case SUSPENDED -> throw new ApiException(ErrorCode.ACCOUNT_SUSPENDED);
             case WITHDRAWN -> throw new ApiException(ErrorCode.ACCOUNT_WITHDRAWN);
-            case PENDING, ACTIVE -> new CurrentUserResponse(user.getUserId(), user.getNickname(),
-                    age(user), user.getStatus());
+            case PENDING, ACTIVE -> user;
         };
     }
 
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public UserProfileResponse getMyProfile(UUID userId) {
-        CurrentUserResponse member = getCurrentUser(userId);
-        if (member.status() == UserStatus.PENDING) {
+        User user = requireCurrentUser(userId);
+        if (user.getStatus() == UserStatus.PENDING) {
             throw new ApiException(ErrorCode.PROFILE_REQUIRED);
         }
 
-        return profileResponse(member.nickname(), member.age(), requireProfile(userId));
+        return profileResponse(user.getNickname(), age(user), requireProfile(userId));
     }
 
     private UserProfileResponse profileResponse(@Nullable String nickname, @Nullable Integer age, UserProfile profile) {
