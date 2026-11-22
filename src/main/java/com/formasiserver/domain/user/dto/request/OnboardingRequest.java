@@ -43,4 +43,10 @@ public record OnboardingRequest(
         @Nullable List<@NotNull(message = "반려동물 종류를 선택해주세요.") PetType> pets,
         @Nullable DriverLicense driverLicense
 ) {
+
+    public ProfileUpdateRequest profile() {
+        return new ProfileUpdateRequest(nickname, gender, occupation, occupationOther, fields, fieldOther, region,
+                householdComposition, householdCompositionOther, householdSize, maritalStatus, maritalStatusOther,
+                childrenCount, petExperience, pets, driverLicense);
+    }
 }

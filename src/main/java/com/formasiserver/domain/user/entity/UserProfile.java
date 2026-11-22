@@ -104,6 +104,24 @@ public class UserProfile extends BaseTimeEntity {
             @Nullable DriverLicense driverLicense
     ) {
         this.user = user;
+        update(gender, occupation, occupationOther, region, householdComposition, householdCompositionOther,
+                householdSize, maritalStatus, maritalStatusOther, childrenCount, petExperience, driverLicense);
+    }
+
+    public void update(
+            Gender gender,
+            Occupation occupation,
+            @Nullable String occupationOther,
+            @Nullable Region region,
+            @Nullable HouseholdComposition householdComposition,
+            @Nullable String householdCompositionOther,
+            @Nullable HouseholdSize householdSize,
+            @Nullable MaritalStatus maritalStatus,
+            @Nullable String maritalStatusOther,
+            @Nullable ChildrenCount childrenCount,
+            @Nullable PetExperience petExperience,
+            @Nullable DriverLicense driverLicense
+    ) {
         this.gender = gender;
         this.occupation = occupation;
         this.occupationOther = occupationOther;

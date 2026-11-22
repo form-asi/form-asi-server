@@ -2,10 +2,12 @@ package com.formasiserver.domain.user.controller;
 
 import com.formasiserver.domain.auth.security.AuthenticatedUser;
 import com.formasiserver.domain.user.dto.request.OnboardingRequest;
+import com.formasiserver.domain.user.dto.request.ProfileUpdateRequest;
 import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
 import com.formasiserver.domain.user.dto.response.NicknameAvailabilityResponse;
 import com.formasiserver.domain.user.dto.response.OnboardingResponse;
 import com.formasiserver.domain.user.dto.response.ProfileOptionsResponse;
+import com.formasiserver.domain.user.dto.response.UserProfileResponse;
 import com.formasiserver.domain.user.service.OnboardingService;
 import com.formasiserver.domain.user.service.UserService;
 import com.formasiserver.global.response.BaseResponse;
@@ -14,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,6 +35,20 @@ public class UserController implements UserApi {
     public BaseResponse<CurrentUserResponse> me(
             @AuthenticationPrincipal AuthenticatedUser principal) {
         return BaseResponse.success(userService.getCurrentUser(principal.userId()));
+    }
+
+    @Override
+    @GetMapping("/me/profile")
+    public BaseResponse<UserProfileResponse> myProfile(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return BaseResponse.success(userService.getMyProfile(principal.userId()));
+    }
+
+    @Override
+    @PutMapping("/me/profile")
+    public BaseResponse<UserProfileResponse> updateMyProfile(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody ProfileUpdateRequest request) {
+        return BaseResponse.success(userService.updateMyProfile(principal.userId(), request));
     }
 
     @Override
