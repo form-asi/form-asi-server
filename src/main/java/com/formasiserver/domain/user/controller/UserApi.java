@@ -3,6 +3,8 @@ package com.formasiserver.domain.user.controller;
 import static com.formasiserver.global.config.SwaggerConfig.BEARER_AUTH;
 
 import com.formasiserver.domain.auth.security.AuthenticatedUser;
+import com.formasiserver.domain.helptime.dto.request.HelpTimeFilter;
+import com.formasiserver.domain.helptime.dto.response.HelpTimeHistoryResponse;
 import com.formasiserver.domain.user.dto.request.OnboardingRequest;
 import com.formasiserver.domain.user.dto.request.ProfileUpdateRequest;
 import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
@@ -41,6 +43,17 @@ public interface UserApi {
     @ApiResponse(responseCode = "403", description = "정지 또는 탈퇴한 계정",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
     BaseResponse<CurrentUserResponse> me(@Parameter(hidden = true) AuthenticatedUser principal);
+
+    @Operation(summary = "내 도움 시간 상세 조회", description = """
+            현재 잔액과 도움 시간 내역을 최신순으로 반환합니다.
+            필터는 변동량 부호에 따라 적용됩니다. 각 항목의 `balanceAfter`는 거래 직후 잔액입니다.
+            `expiresAt`은 가입 혜택 지급 항목의 만료 시각입니다.
+            """)
+    @ApiResponse(responseCode = "200", description = "도움 시간 조회 성공", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "400", description = "올바르지 않은 필터")
+    @ApiResponse(responseCode = "403", description = "온보딩 전이거나 정지 또는 탈퇴한 계정")
+    BaseResponse<HelpTimeHistoryResponse> myHelpTime(@Parameter(hidden = true) AuthenticatedUser principal,
+            @Parameter(description = "전체, 적립, 차감", example = "ALL") HelpTimeFilter filter);
 
     @Operation(summary = "내 프로필 상세 조회", description = """
             온보딩을 완료한 회원이 현재 저장된 프로필을 확인할 수 있습니다.

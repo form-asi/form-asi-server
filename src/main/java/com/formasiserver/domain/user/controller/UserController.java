@@ -1,6 +1,9 @@
 package com.formasiserver.domain.user.controller;
 
 import com.formasiserver.domain.auth.security.AuthenticatedUser;
+import com.formasiserver.domain.helptime.dto.request.HelpTimeFilter;
+import com.formasiserver.domain.helptime.dto.response.HelpTimeHistoryResponse;
+import com.formasiserver.domain.helptime.service.HelpTimeService;
 import com.formasiserver.domain.user.dto.request.OnboardingRequest;
 import com.formasiserver.domain.user.dto.request.ProfileUpdateRequest;
 import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
@@ -8,8 +11,11 @@ import com.formasiserver.domain.user.dto.response.NicknameAvailabilityResponse;
 import com.formasiserver.domain.user.dto.response.OnboardingResponse;
 import com.formasiserver.domain.user.dto.response.ProfileOptionsResponse;
 import com.formasiserver.domain.user.dto.response.UserProfileResponse;
+import com.formasiserver.domain.user.entity.UserStatus;
 import com.formasiserver.domain.user.service.OnboardingService;
 import com.formasiserver.domain.user.service.UserService;
+import com.formasiserver.global.exception.ApiException;
+import com.formasiserver.global.exception.ErrorCode;
 import com.formasiserver.global.response.BaseResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +35,24 @@ public class UserController implements UserApi {
 
     private final UserService userService;
     private final OnboardingService onboardingService;
+    private final HelpTimeService helpTimeService;
 
     @Override
     @GetMapping("/me")
     public BaseResponse<CurrentUserResponse> me(
             @AuthenticationPrincipal AuthenticatedUser principal) {
         return BaseResponse.success(userService.getCurrentUser(principal.userId()));
+    }
+
+    @Override
+    @GetMapping("/me/help-time")
+    public BaseResponse<HelpTimeHistoryResponse> myHelpTime(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @RequestParam(defaultValue = "ALL") HelpTimeFilter filter) {
+        if (principal.status() == UserStatus.PENDING) {
+            throw new ApiException(ErrorCode.PROFILE_REQUIRED);
+        }
+        return BaseResponse.success(helpTimeService.getHistory(principal.userId(), filter));
     }
 
     @Override

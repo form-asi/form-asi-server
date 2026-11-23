@@ -126,7 +126,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
                         .requestMatchers(cookieRequests).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me", "/api/v1/users/profile-options",
-                                "/api/v1/users/nickname-availability", "/api/v1/users/me/profile").authenticated()
+                                "/api/v1/users/nickname-availability", "/api/v1/users/me/profile",
+                                "/api/v1/users/me/help-time").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/v1/users/me/onboarding").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/users/me/profile").authenticated()
                         .anyRequest().denyAll())
