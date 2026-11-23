@@ -17,10 +17,9 @@ concurrency:
   group: cd-prod
   cancel-in-progress: false
 
+
 env:
   AWS_REGION: ap-northeast-2
-  ECR_REPOSITORY: form-asi-server
-  SSM_PARAM_PATH: /form-asi/prod
   APP_DIR: /home/ubuntu/app
 
 jobs:
@@ -44,6 +43,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
 
       - id: ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -59,8 +59,8 @@ jobs:
           provenance: false
           sbom: false
           tags: |
-            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
-            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            ${{ steps.ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/${{ secrets.ECR_REPOSITORY }}:latest
 
   deploy:
     needs: build
@@ -74,6 +74,7 @@ jobs:
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
+          mask-aws-account-id: true
 
       - id: ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -81,12 +82,14 @@ jobs:
       - name: Deploy to EC2 via SSM
         env:
           INSTANCE_ID: ${{ secrets.EC2_INSTANCE_ID }}
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          SSM_PARAM_PATH: ${{ secrets.SSM_PARAM_PATH }}
           REGISTRY: ${{ steps.ecr.outputs.registry }}
           IMAGE_TAG: ${{ inputs.image_tag || github.sha }}
         run: |
           set -euo pipefail
           IMAGE="${REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-          echo "Deploying ${IMAGE}"
+          echo "Deploying tag ${IMAGE_TAG}"
 
           {
             echo "IMAGE='${IMAGE}'"
@@ -126,8 +129,8 @@ jobs:
             fi
             sleep 3
           done
-          echo "health check failed"
-          docker compose -f compose.prod.yaml logs --tail 200 app || true
+          # 퍼블릭 레포라 앱 로그(DB 주소 등)는 Actions에 출력하지 않음 → EC2에서 직접 확인
+          echo "health check failed: EC2에서 'docker logs --tail 200 form-asi-app' 로 원인 확인"
           exit 1
           REMOTE
           } > remote.sh
