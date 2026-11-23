@@ -124,6 +124,7 @@ public class SecurityConfig {
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers("/api-docs", "/api-docs/**", "/swagger-ui/**", "/v3/api-docs",
                                 "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
                         .requestMatchers(cookieRequests).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me", "/api/v1/users/profile-options",
                                 "/api/v1/users/nickname-availability", "/api/v1/users/me/profile",
