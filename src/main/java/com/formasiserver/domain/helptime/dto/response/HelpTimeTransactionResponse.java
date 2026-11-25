@@ -8,11 +8,11 @@ public record HelpTimeTransactionResponse(
         String reason,
         @Nullable String surveyTitle,
         long changeMinutes,
-        int balanceAfter,
+        long balanceAfter,
         @Nullable Instant expiresAt
 ) {
 
-    public HelpTimeTransactionResponse(Instant createdAt, String reason, long changeMinutes, int balanceAfter,
+    public HelpTimeTransactionResponse(Instant createdAt, String reason, long changeMinutes, long balanceAfter,
             @Nullable Instant expiresAt) {
         this(createdAt, reason, null, changeMinutes, balanceAfter, expiresAt);
     }

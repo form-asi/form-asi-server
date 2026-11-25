@@ -13,6 +13,7 @@ public enum ErrorCode {
     INVALID_NICKNAME(HttpStatus.BAD_REQUEST, "INVALID_NICKNAME", "닉네임은 한글, 영문, 숫자로 2~10자를 입력해주세요."),
     NICKNAME_ALREADY_IN_USE(HttpStatus.CONFLICT, "NICKNAME_ALREADY_IN_USE", "이미 사용 중인 닉네임입니다."),
     ONBOARDING_ALREADY_COMPLETED(HttpStatus.CONFLICT, "ONBOARDING_ALREADY_COMPLETED", "이미 프로필 입력을 완료했습니다."),
+    INSUFFICIENT_HELP_TIME(HttpStatus.CONFLICT, "INSUFFICIENT_HELP_TIME", "설문 등록에 필요한 도움 시간이 부족합니다."),
     KAKAO_LOGIN_CANCELLED(HttpStatus.BAD_REQUEST, "KAKAO_LOGIN_CANCELLED", "카카오 로그인이 취소됐습니다."),
     OAUTH_STATE_INVALID(HttpStatus.BAD_REQUEST, "OAUTH_STATE_INVALID", "카카오 로그인을 처음부터 다시 시작해주세요."),
     BIRTH_DATE_UNAVAILABLE(HttpStatus.BAD_REQUEST, "BIRTH_DATE_UNAVAILABLE", "유효한 생년월일을 입력해주세요."),

@@ -28,6 +28,16 @@ public class SignupBonus extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @Column(name = "granted_at", nullable = false)
+    private Instant grantedAt;
+
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
+
+    @Column(name = "reclaimed_at")
+    private Instant reclaimedAt;
+
+    public boolean isUsableAt(Instant now) {
+        return reclaimedAt == null && !now.isBefore(grantedAt) && now.isBefore(expiresAt);
+    }
 }

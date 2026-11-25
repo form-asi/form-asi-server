@@ -37,5 +37,15 @@ public class TimeTransaction extends BaseTimeEntity {
     private int bonusAmount;
 
     @Column(name = "balance_after", nullable = false)
-    private int balanceAfter;
+    private long balanceAfter;
+
+    public static TimeTransaction of(TimeAccount account, TimeTransfer transfer, int amount, int bonusAmount) {
+        TimeTransaction transaction = new TimeTransaction();
+        transaction.account = account;
+        transaction.transfer = transfer;
+        transaction.amount = amount;
+        transaction.bonusAmount = bonusAmount;
+        transaction.balanceAfter = account.getBalanceMinutes();
+        return transaction;
+    }
 }
