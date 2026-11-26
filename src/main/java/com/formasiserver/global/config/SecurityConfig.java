@@ -129,8 +129,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/users/me", "/api/v1/users/profile-options",
                                 "/api/v1/users/nickname-availability", "/api/v1/users/me/profile",
                                 "/api/v1/users/me/help-time").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users/me/onboarding").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/users/me/onboarding", "/api/v1/surveys").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/users/me/profile").authenticated()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/users/me/notification-settings").authenticated()
                         .anyRequest().denyAll())
                 .build();
     }

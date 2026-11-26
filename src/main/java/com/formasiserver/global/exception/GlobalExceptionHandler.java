@@ -30,7 +30,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             log.error("API exception: {}", code.getCode(), e);
         }
         return ResponseEntity.status(code.getStatus())
-                .body(BaseResponse.fail(ErrorResponse.of(code.getCode(), code.getMessage(), e.getValidationErrors())));
+                .body(BaseResponse.fail(ErrorResponse.of(code.getCode(), e.getMessage(), e.getValidationErrors())));
     }
 
     // MVC 실행 중 발생한 보안 예외. 필터 단계의 예외는 Security 설정에서 별도로 처리한다.

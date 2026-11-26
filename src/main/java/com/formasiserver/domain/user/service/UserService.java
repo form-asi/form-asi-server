@@ -5,6 +5,7 @@ import com.formasiserver.domain.helptime.repository.TimeAccountRepository;
 import com.formasiserver.domain.user.dto.request.ProfileUpdateRequest;
 import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
 import com.formasiserver.domain.user.dto.response.NicknameAvailabilityResponse;
+import com.formasiserver.domain.user.dto.response.NotificationSettingsResponse;
 import com.formasiserver.domain.user.dto.response.UserProfileResponse;
 import com.formasiserver.domain.user.entity.ProfileChangeLog;
 import com.formasiserver.domain.user.entity.User;
@@ -63,7 +64,15 @@ public class UserService {
         long helpTimeMinutes = timeAccountRepository.findByUser_UserId(user.getUserId())
                 .map(TimeAccount::getBalanceMinutes)
                 .orElse(0L);
-        return new CurrentUserResponse(user.getUserId(), user.getNickname(), age(user), user.getStatus(), helpTimeMinutes);
+        return new CurrentUserResponse(user.getUserId(), user.getNickname(), age(user), user.getStatus(),
+                helpTimeMinutes, user.isNotificationEnabled());
+    }
+
+    @Transactional
+    public NotificationSettingsResponse updateNotificationSettings(UUID userId, boolean notificationEnabled) {
+        User user = requireActiveUserForUpdate(userId);
+        user.changeNotificationEnabled(notificationEnabled);
+        return new NotificationSettingsResponse(user.isNotificationEnabled());
     }
 
     private User requireCurrentUser(UUID userId) {
@@ -104,14 +113,8 @@ public class UserService {
 
     @Transactional
     public UserProfileResponse updateMyProfile(UUID userId, ProfileUpdateRequest request) {
-        User user = userRepository.findByUserId(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
-        switch (user.getStatus()) {
-            case PENDING -> throw new ApiException(ErrorCode.PROFILE_REQUIRED);
-            case SUSPENDED -> throw new ApiException(ErrorCode.ACCOUNT_SUSPENDED);
-            case WITHDRAWN -> throw new ApiException(ErrorCode.ACCOUNT_WITHDRAWN);
-            case ACTIVE -> ProfileOptionsValidator.validate(request);
-        }
+        User user = requireActiveUserForUpdate(userId);
+        ProfileOptionsValidator.validate(request);
 
         UserProfile profile = requireProfile(userId);
         List<String> changedItems = new ArrayList<>();
@@ -127,6 +130,17 @@ public class UserService {
             profileChangeLogRepository.save(ProfileChangeLog.of(user, changedItems));
         }
         return profileResponse(user.getNickname(), age(user), profile);
+    }
+
+    private User requireActiveUserForUpdate(UUID userId) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException(ErrorCode.UNAUTHORIZED));
+        return switch (user.getStatus()) {
+            case PENDING -> throw new ApiException(ErrorCode.PROFILE_REQUIRED);
+            case SUSPENDED -> throw new ApiException(ErrorCode.ACCOUNT_SUSPENDED);
+            case WITHDRAWN -> throw new ApiException(ErrorCode.ACCOUNT_WITHDRAWN);
+            case ACTIVE -> user;
+        };
     }
 
     private @Nullable Integer age(User user) {

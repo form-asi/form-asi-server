@@ -5,5 +5,5 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 public record CurrentUserResponse(UUID userId, @Nullable String nickname, @Nullable Integer age, UserStatus status,
-                                  long helpTimeMinutes) {
+                                  long helpTimeMinutes, boolean notificationEnabled) {
 }
