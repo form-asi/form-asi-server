@@ -75,15 +75,22 @@ class CurrentUserHelpTimeTest {
                 INSERT INTO signup_bonus (user_id, granted_minutes, granted_at, expires_at, created_at, updated_at)
                 VALUES (?, 15, TIMESTAMPTZ '2030-01-01T00:00:00Z', TIMESTAMPTZ '2030-01-08T00:00:00Z', now(), now())
                 """, userId);
-        insertHistory(userId, "SIGNUP_BONUS_GRANTED", 0, 15, 15);
-        insertHistory(otherId, "SURVEY_RESPONSE", 80, 0, 80);
-        insertHistory(userId, "SURVEY_REGISTERED", 3, -28, -10);
+        Long surveyId = jdbcTemplate.queryForObject("""
+                INSERT INTO survey (user_id, title, external_url, target_count, duration_minutes, pay_minutes,
+                                    status, created_at, updated_at)
+                VALUES (?, '등록 차감 테스트 설문', 'https://example.com/form', 5, 5, 5, 'OPEN', now(), now())
+                RETURNING id
+                """, Long.class, userId);
+        insertHistory(userId, "SIGNUP_BONUS_GRANTED", null, 0, 15, 15);
+        insertHistory(otherId, "SURVEY_RESPONSE", null, 80, 0, 80);
+        insertHistory(userId, "SURVEY_REGISTERED", surveyId, 3, -28, -10);
 
         mvc.perform(helpTime(userId).param("userId", otherId.toString()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.helpTimeMinutes").value(-10))
                 .andExpect(jsonPath("$.data.items.length()").value(2))
                 .andExpect(jsonPath("$.data.items[0].reason").value("SURVEY_REGISTERED"))
+                .andExpect(jsonPath("$.data.items[0].surveyTitle").value("등록 차감 테스트 설문"))
                 .andExpect(jsonPath("$.data.items[0].createdAt").isString())
                 .andExpect(jsonPath("$.data.items[0].changeMinutes").value(-25))
                 .andExpect(jsonPath("$.data.items[0].balanceAfter").value(-10))
@@ -102,6 +109,8 @@ class CurrentUserHelpTimeTest {
         mvc.perform(helpTime(userId).param("filter", "SPENT"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items.length()").value(1))
+                .andExpect(jsonPath("$.data.items[0].reason").value("SURVEY_REGISTERED"))
+                .andExpect(jsonPath("$.data.items[0].surveyTitle").value("등록 차감 테스트 설문"))
                 .andExpect(jsonPath("$.data.items[0].changeMinutes").value(-25));
     }
 
@@ -125,16 +134,17 @@ class CurrentUserHelpTimeTest {
                 """, userId, balance, bonusBalance);
     }
 
-    private void insertHistory(UUID userId, String reason, int amount, int bonusAmount, int balanceAfter) {
+    private void insertHistory(UUID userId, String reason, Long surveyId, int amount, int bonusAmount, int balanceAfter) {
         jdbcTemplate.update("""
                 WITH transfer AS (
-                    INSERT INTO time_transfer (type, created_at, updated_at) VALUES (?, now(), now()) RETURNING id
+                    INSERT INTO time_transfer (type, survey_id, created_at, updated_at)
+                    VALUES (?, ?, now(), now()) RETURNING id
                 )
                 INSERT INTO time_transaction (time_account_id, time_transfer_id, amount, bonus_amount,
                                               balance_after, created_at, updated_at)
                 SELECT time_account.id, transfer.id, ?, ?, ?, now(), now()
                 FROM time_account CROSS JOIN transfer
                 WHERE time_account.user_id = ?
-                """, reason, amount, bonusAmount, balanceAfter, userId);
+                """, reason, surveyId, amount, bonusAmount, balanceAfter, userId);
     }
 }

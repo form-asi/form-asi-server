@@ -47,6 +47,7 @@ public interface UserApi {
     @Operation(summary = "내 도움 시간 상세 조회", description = """
             현재 잔액과 도움 시간 내역을 최신순으로 반환합니다.
             필터는 변동량 부호에 따라 적용됩니다. 각 항목의 `balanceAfter`는 거래 직후 잔액입니다.
+            거래에 설문 ID가 있으면 `surveyTitle`에 설문 제목을 담고, 없으면 `null`을 반환합니다.
             `expiresAt`은 가입 혜택 지급 항목의 만료 시각입니다.
             """)
     @ApiResponse(responseCode = "200", description = "도움 시간 조회 성공", useReturnTypeSchema = true)

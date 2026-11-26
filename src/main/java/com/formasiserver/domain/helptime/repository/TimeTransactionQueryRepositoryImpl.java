@@ -4,6 +4,7 @@ import static com.formasiserver.domain.helptime.entity.QSignupBonus.signupBonus;
 import static com.formasiserver.domain.helptime.entity.QTimeAccount.timeAccount;
 import static com.formasiserver.domain.helptime.entity.QTimeTransaction.timeTransaction;
 import static com.formasiserver.domain.helptime.entity.QTimeTransfer.timeTransfer;
+import static com.formasiserver.domain.survey.entity.QSurvey.survey;
 
 import com.formasiserver.domain.helptime.dto.request.HelpTimeFilter;
 import com.formasiserver.domain.helptime.dto.response.HelpTimeTransactionResponse;
@@ -29,11 +30,12 @@ public class TimeTransactionQueryRepositoryImpl implements TimeTransactionQueryR
         };
 
         return queryFactory.select(Projections.constructor(HelpTimeTransactionResponse.class,
-                        timeTransaction.createdAt, timeTransfer.type, changeMinutes,
+                        timeTransaction.createdAt, timeTransfer.type, survey.title, changeMinutes,
                         timeTransaction.balanceAfter, signupBonus.expiresAt))
                 .from(timeTransaction)
                 .join(timeTransaction.account, timeAccount)
                 .join(timeTransaction.transfer, timeTransfer)
+                .leftJoin(survey).on(survey.id.eq(timeTransfer.surveyId))
                 .leftJoin(signupBonus)
                 .on(signupBonus.user.eq(timeAccount.user), timeTransfer.type.eq("SIGNUP_BONUS_GRANTED"))
                 .where(timeAccount.id.eq(accountId), matchesFilter)

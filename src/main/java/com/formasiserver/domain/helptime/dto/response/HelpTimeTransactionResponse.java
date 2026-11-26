@@ -11,9 +11,4 @@ public record HelpTimeTransactionResponse(
         long balanceAfter,
         @Nullable Instant expiresAt
 ) {
-
-    public HelpTimeTransactionResponse(Instant createdAt, String reason, long changeMinutes, long balanceAfter,
-            @Nullable Instant expiresAt) {
-        this(createdAt, reason, null, changeMinutes, balanceAfter, expiresAt);
-    }
 }

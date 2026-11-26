@@ -79,6 +79,7 @@ class HelpTimeReservationTest {
 
         assertThat(helpTimeService.getHistory(userId, HelpTimeFilter.SPENT).items()).singleElement().satisfies(item -> {
             assertThat(item.reason()).isEqualTo("SURVEY_REGISTERED");
+            assertThat(item.surveyTitle()).isEqualTo(survey.getTitle());
             assertThat(item.changeMinutes()).isEqualTo(-50);
             assertThat(item.balanceAfter()).isEqualTo(balanceAfter);
         });
