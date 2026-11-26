@@ -92,8 +92,10 @@ class HelpTimeReservationTest {
         insertBonus(userId, 20, "EXPIRED");
 
         assertThatThrownBy(() -> helpTimeService.reserveForSurveyRegistration(survey))
-                .isInstanceOfSatisfying(ApiException.class,
-                        exception -> assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INSUFFICIENT_HELP_TIME));
+                .isInstanceOfSatisfying(ApiException.class, exception -> {
+                    assertThat(exception.getErrorCode()).isEqualTo(ErrorCode.INSUFFICIENT_HELP_TIME);
+                    assertThat(exception).hasMessage("10분이 모자라요. 응답 수나 소요 시간을 줄여주세요.");
+                });
         assertThat(jdbcTemplate.queryForMap("""
                 SELECT balance, bonus_balance FROM time_account WHERE user_id = ?
                 """, userId)).containsEntry("balance", 40).containsEntry("bonus_balance", 20);

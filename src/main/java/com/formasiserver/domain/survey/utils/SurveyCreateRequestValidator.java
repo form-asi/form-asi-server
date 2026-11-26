@@ -48,7 +48,7 @@ public final class SurveyCreateRequestValidator {
     public static void validate(SurveyCreateRequest request) {
         List<ValidationError> errors = new ArrayList<>();
         if (!isHttpsUrl(request.externalUrl())) {
-            errors.add(new ValidationError("externalUrl", "https://로 시작하는 유효한 설문 주소를 입력해주세요."));
+            errors.add(new ValidationError("externalUrl", "https://로 시작하는 설문 링크를 입력해주세요."));
         }
 
         validateOtherText(errors, "purposeOther", request.purpose() == SurveyPurposeCode.OTHER, request.purposeOther());
@@ -58,11 +58,11 @@ public final class SurveyCreateRequestValidator {
         if (!DURATIONS.contains(duration)) {
             errors.add(new ValidationError("durationMinutes", "목록에서 소요 시간을 선택해주세요."));
         } else if ((long) request.targetCount() * duration > Integer.MAX_VALUE) {
-            errors.add(new ValidationError("targetCount", "필요한 도움 시간이 저장 범위를 초과합니다."));
+            errors.add(new ValidationError("targetCount", "필요한 도움 시간이 너무 많아요. 응답 수나 소요 시간을 줄여주세요."));
         }
 
         if (request.minAge() != null && request.maxAge() != null && request.minAge() > request.maxAge()) {
-            errors.add(new ValidationError("minAge", "최소 나이는 최대 나이보다 클 수 없습니다."));
+            errors.add(new ValidationError("minAge", "최소 나이는 최대 나이보다 클 수 없어요."));
         }
 
         if (request.targetConditions() != null) {

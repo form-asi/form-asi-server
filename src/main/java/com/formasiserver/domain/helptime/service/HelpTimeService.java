@@ -11,7 +11,6 @@ import com.formasiserver.domain.helptime.repository.TimeTransactionRepository;
 import com.formasiserver.domain.helptime.repository.TimeTransferRepository;
 import com.formasiserver.domain.survey.entity.Survey;
 import com.formasiserver.global.exception.ApiException;
-import com.formasiserver.global.exception.ErrorCode;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -38,15 +37,15 @@ public class HelpTimeService {
 
     @Transactional
     public long reserveForSurveyRegistration(Survey survey) {
+        int requiredMinutes = Math.multiplyExact(survey.getDurationMinutes(), survey.getTargetCount());
         UUID userId = survey.getUser().getUserId();
         TimeAccount userAccount = timeAccountRepository.findForUpdateByUser_UserId(userId)
-                .orElseThrow(() -> new ApiException(ErrorCode.INSUFFICIENT_HELP_TIME));
+                .orElseThrow(() -> ApiException.insufficientHelpTime(requiredMinutes, 0));
         Instant now = Instant.now();
         boolean bonusActive = signupBonusRepository.findByUser_UserId(userId)
                 .map(bonus -> bonus.isUsableAt(now))
                 .orElse(false);
 
-        int requiredMinutes = Math.multiplyExact(survey.getDurationMinutes(), survey.getTargetCount());
         TimeAccount reserve = timeAccountRepository.save(userAccount.reserveForSurvey(survey, requiredMinutes, bonusActive));
         TimeTransfer transfer = timeTransferRepository.save(TimeTransfer.forSurveyRegistration(survey.getId()));
 

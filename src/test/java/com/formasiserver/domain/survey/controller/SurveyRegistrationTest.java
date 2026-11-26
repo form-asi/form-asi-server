@@ -17,8 +17,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -98,12 +97,16 @@ class SurveyRegistrationTest {
     }
 
     @ParameterizedTest
-    @NullSource
-    @ValueSource(ints = {-10, 40})
-    void rejectsMissingOrInsufficientBalanceWithoutPublishing(Integer balance) throws Exception {
+    @CsvSource(value = {
+            "NONE | 50분이 모자라요. 응답 수나 소요 시간을 줄여주세요.",
+            "-10 | 도움 시간이 마이너스인 동안은 설문을 올릴 수 없어요.",
+            "40 | 10분이 모자라요. 응답 수나 소요 시간을 줄여주세요."
+    }, delimiter = '|', nullValues = "NONE")
+    void rejectsMissingOrInsufficientBalanceWithoutPublishing(Integer balance, String message) throws Exception {
         UUID userId = member("ACTIVE", balance);
         mvc.perform(register(access(userId), BODY)).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error.code").value("INSUFFICIENT_HELP_TIME"));
+                .andExpect(jsonPath("$.error.code").value("INSUFFICIENT_HELP_TIME"))
+                .andExpect(jsonPath("$.error.message").value(message));
         assertPublished(userId, 0, balance);
     }
 
@@ -118,9 +121,28 @@ class SurveyRegistrationTest {
 
         UUID active = member("ACTIVE", 60);
         mvc.perform(register(access(active), BODY.replace("https://", "http://")))
-                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.error.errors[0].field").value("externalUrl"));
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.errors[0].field").value("externalUrl"))
+                .andExpect(jsonPath("$.error.errors[0].message").value("https://로 시작하는 설문 링크를 입력해주세요."));
         assertPublished(pending, 0, 60);
         assertPublished(active, 0, 60);
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {
+            "13 | 30 | minAge | 만 14세 이상만 이용할 수 있어요.",
+            "14 | 101 | maxAge | 100세 이하로 설정해주세요.",
+            "35 | 30 | minAge | 최소 나이는 최대 나이보다 클 수 없어요."
+    }, delimiter = '|')
+    void explainsInvalidTargetAges(int minAge, int maxAge, String field, String message) throws Exception {
+        UUID userId = member("ACTIVE", 60);
+        var body = objectMapper.readTree(BODY).asObject();
+        body.put("minAge", minAge).put("maxAge", maxAge);
+
+        mvc.perform(register(access(userId), objectMapper.writeValueAsString(body)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.errors[0].field").value(field))
+                .andExpect(jsonPath("$.error.errors[0].message").value(message));
     }
 
     @Test
@@ -149,6 +171,8 @@ class SurveyRegistrationTest {
                 .findFirst().orElseThrow();
         assertThat(objectMapper.readTree(rejected.getContentAsByteArray()).path("error").path("code").asString())
                 .isEqualTo("INSUFFICIENT_HELP_TIME");
+        assertThat(objectMapper.readTree(rejected.getContentAsByteArray()).path("error").path("message").asString())
+                .isEqualTo("40분이 모자라요. 응답 수나 소요 시간을 줄여주세요.");
         assertPublished(userId, 1, 10);
     }
 

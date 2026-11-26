@@ -26,13 +26,17 @@ public record SurveyCreateRequest(
         @NotBlank(message = "설문 제목을 입력해주세요.")
         @CodePointLength(max = 100, message = "설문 제목은 공백 포함 100자 이내로 입력해주세요.")
         String title,
-        @NotNull(message = "목표 인원을 입력해주세요.")
-        @Positive(message = "목표 인원은 1명 이상이어야 합니다.")
+        @NotNull(message = "받고 싶은 응답 수를 입력해주세요.")
+        @Positive(message = "응답 수는 1명 이상으로 입력해주세요.")
         Integer targetCount,
         @NotNull(message = "소요 시간을 선택해주세요.")
         Integer durationMinutes,
-        @Nullable @Min(14) @Max(100) Integer minAge,
-        @Nullable @Min(14) @Max(100) Integer maxAge,
+        @Min(value = 14, message = "만 14세 이상만 이용할 수 있어요.")
+        @Max(value = 100, message = "100세 이하로 설정해주세요.")
+        @Nullable Integer minAge,
+        @Min(value = 14, message = "만 14세 이상만 이용할 수 있어요.")
+        @Max(value = 100, message = "100세 이하로 설정해주세요.")
+        @Nullable Integer maxAge,
         @Nullable Map<String, Set<String>> targetConditions,
         @Nullable @CodePointLength(max = 200, message = "대상 설명은 공백 포함 200자 이내로 입력해주세요.")
         String targetDescription,

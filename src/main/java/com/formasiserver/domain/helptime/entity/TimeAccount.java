@@ -4,7 +4,6 @@ import com.formasiserver.domain.survey.entity.Survey;
 import com.formasiserver.domain.user.entity.User;
 import com.formasiserver.global.entity.BaseTimeEntity;
 import com.formasiserver.global.exception.ApiException;
-import com.formasiserver.global.exception.ErrorCode;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -51,8 +50,9 @@ public class TimeAccount extends BaseTimeEntity {
 
     public TimeAccount reserveForSurvey(Survey survey, int requiredMinutes, boolean bonusActive) {
         int usableBonusBalance = bonusActive ? bonusBalance : Math.min(0, bonusBalance);
-        if ((long) balance + usableBonusBalance < requiredMinutes) {
-            throw new ApiException(ErrorCode.INSUFFICIENT_HELP_TIME);
+        long availableMinutes = (long) balance + usableBonusBalance;
+        if (availableMinutes < requiredMinutes) {
+            throw ApiException.insufficientHelpTime(requiredMinutes, availableMinutes);
         }
 
         int reservedBonus = Math.min(requiredMinutes, Math.max(0, usableBonusBalance));

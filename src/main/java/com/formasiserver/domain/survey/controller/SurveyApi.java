@@ -26,7 +26,8 @@ public interface SurveyApi {
     @ApiResponse(responseCode = "400", description = "설문 입력값이 올바르지 않습니다.")
     @ApiResponse(responseCode = "401", description = "유효한 Access 토큰이 필요합니다.")
     @ApiResponse(responseCode = "403", description = "PROFILE_REQUIRED, ACCOUNT_SUSPENDED 또는 ACCOUNT_WITHDRAWN")
-    @ApiResponse(responseCode = "409", description = "INSUFFICIENT_HELP_TIME")
+    @ApiResponse(responseCode = "409", description = "INSUFFICIENT_HELP_TIME. 사용 가능한 도움 시간이 모자라면 부족한 분 수를, "
+            + "잔액이 마이너스면 설문을 올릴 수 없다는 안내를 반환합니다.")
     BaseResponse<SurveyCreateResponse> register(@Parameter(hidden = true) AuthenticatedUser principal,
             SurveyCreateRequest request);
 }
