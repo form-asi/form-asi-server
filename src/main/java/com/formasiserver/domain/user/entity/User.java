@@ -61,4 +61,8 @@ public class User extends BaseTimeEntity {
         this.nickname = nickname;
     }
 
+    public void changeNotificationEnabled(boolean notificationEnabled) {
+        this.notificationEnabled = notificationEnabled;
+    }
+
 }

@@ -5,10 +5,12 @@ import static com.formasiserver.global.config.SwaggerConfig.BEARER_AUTH;
 import com.formasiserver.domain.auth.security.AuthenticatedUser;
 import com.formasiserver.domain.helptime.dto.request.HelpTimeFilter;
 import com.formasiserver.domain.helptime.dto.response.HelpTimeHistoryResponse;
+import com.formasiserver.domain.user.dto.request.NotificationSettingsUpdateRequest;
 import com.formasiserver.domain.user.dto.request.OnboardingRequest;
 import com.formasiserver.domain.user.dto.request.ProfileUpdateRequest;
 import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
 import com.formasiserver.domain.user.dto.response.NicknameAvailabilityResponse;
+import com.formasiserver.domain.user.dto.response.NotificationSettingsResponse;
 import com.formasiserver.domain.user.dto.response.OnboardingResponse;
 import com.formasiserver.domain.user.dto.response.ProfileOptionsResponse;
 import com.formasiserver.domain.user.dto.response.UserProfileResponse;
@@ -33,16 +35,27 @@ public interface UserApi {
             로그인한 회원의 ID, 닉네임, 나이, 상태, 현재 도움 시간을 확인할 수 있습니다.
             `status`가 `PENDING`이면 온보딩을 진행하세요. 아직 생년월일이 저장되지 않았다면 `age`는 `null`입니다.
             `helpTimeMinutes`는 분 단위 잔액입니다. 시간 계정이 없으면 `0`이며 잔액이 음수면 그대로 반환합니다.
+            `notificationEnabled`는 전체 알림 수신 설정입니다.
             """)
     @ApiResponse(responseCode = "200", description = "내 정보 조회 성공",
             useReturnTypeSchema = true,
             content = @Content(mediaType = "application/json", examples = @ExampleObject(name = "온보딩 전", value = """
                     {"success":true,"data":{"userId":"e7cc72fc-8b37-44eb-a154-051f5652a9bd","nickname":null,
-                    "age":null,"status":"PENDING","helpTimeMinutes":0},"error":null}
+                    "age":null,"status":"PENDING","helpTimeMinutes":0,"notificationEnabled":true},"error":null}
                     """)))
     @ApiResponse(responseCode = "403", description = "정지 또는 탈퇴한 계정",
             content = @Content(mediaType = "application/json", schema = @Schema(implementation = BaseResponse.class)))
     BaseResponse<CurrentUserResponse> me(@Parameter(hidden = true) AuthenticatedUser principal);
+
+    @Operation(summary = "전체 알림 수신 설정 변경", description = """
+            `notificationEnabled`가 `true`면 전체 알림을 받고, `false`면 받지 않습니다.
+            알림을 꺼도 알림 내역은 목록에 남습니다.
+            """)
+    @ApiResponse(responseCode = "200", description = "저장된 알림 수신 설정", useReturnTypeSchema = true)
+    @ApiResponse(responseCode = "400", description = "알림 수신 설정 값이 없거나 올바르지 않습니다.")
+    @ApiResponse(responseCode = "403", description = "온보딩 전이거나 정지 또는 탈퇴한 계정")
+    BaseResponse<NotificationSettingsResponse> updateNotificationSettings(
+            @Parameter(hidden = true) AuthenticatedUser principal, NotificationSettingsUpdateRequest request);
 
     @Operation(summary = "내 도움 시간 상세 조회", description = """
             현재 잔액과 도움 시간 내역을 최신순으로 반환합니다.

@@ -4,10 +4,12 @@ import com.formasiserver.domain.auth.security.AuthenticatedUser;
 import com.formasiserver.domain.helptime.dto.request.HelpTimeFilter;
 import com.formasiserver.domain.helptime.dto.response.HelpTimeHistoryResponse;
 import com.formasiserver.domain.helptime.service.HelpTimeService;
+import com.formasiserver.domain.user.dto.request.NotificationSettingsUpdateRequest;
 import com.formasiserver.domain.user.dto.request.OnboardingRequest;
 import com.formasiserver.domain.user.dto.request.ProfileUpdateRequest;
 import com.formasiserver.domain.user.dto.response.CurrentUserResponse;
 import com.formasiserver.domain.user.dto.response.NicknameAvailabilityResponse;
+import com.formasiserver.domain.user.dto.response.NotificationSettingsResponse;
 import com.formasiserver.domain.user.dto.response.OnboardingResponse;
 import com.formasiserver.domain.user.dto.response.ProfileOptionsResponse;
 import com.formasiserver.domain.user.dto.response.UserProfileResponse;
@@ -21,6 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,6 +45,15 @@ public class UserController implements UserApi {
     public BaseResponse<CurrentUserResponse> me(
             @AuthenticationPrincipal AuthenticatedUser principal) {
         return BaseResponse.success(userService.getCurrentUser(principal.userId()));
+    }
+
+    @Override
+    @PatchMapping("/me/notification-settings")
+    public BaseResponse<NotificationSettingsResponse> updateNotificationSettings(
+            @AuthenticationPrincipal AuthenticatedUser principal,
+            @Valid @RequestBody NotificationSettingsUpdateRequest request) {
+        return BaseResponse.success(
+                userService.updateNotificationSettings(principal.userId(), request.notificationEnabled()));
     }
 
     @Override
